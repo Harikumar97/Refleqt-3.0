@@ -26,73 +26,32 @@
  * - TODO: Replace with NextAuth session verification
  */
 
-import { type NextRequest, NextResponse } from "next/server";
+import { type NextRequest } from "next/server";
+import { ResearchSwarmService } from "@/features/research-swarm/services/ResearchSwarmService";
+import { apiResponse } from "@/lib/api/response";
 import prisma from "@/lib/db/prisma";
-import { assert } from "@/utils/assert";
-export async function GET(request: NextRequest): Promise<NextResponse> {
+
+const swarmService = new ResearchSwarmService();
+
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
     const userId = searchParams.get("userId");
 
-    assert(!!userId, "userId is required");
+    if (!userId) {
+      return apiResponse.badRequest("userId is required");
+    }
 
-    // Get swarm counts
-    const [totalSwarms, activeSwarms, completedSwarms, failedSwarms] =
-      await Promise.all([
-        prisma.researchSwarm.count({
-          where: { userId },
-        }),
-        prisma.researchSwarm.count({
-          where: {
-            userId,
-            status: { in: ["pending", "running", "processing"] },
-          },
-        }),
-        prisma.researchSwarm.count({
-          where: {
-            userId,
-            status: "completed",
-          },
-        }),
-        prisma.researchSwarm.count({
-          where: {
-            userId,
-            status: "failed",
-          },
-        }),
-      ]);
+    // Get stats from service layer
+    const stats = await swarmService.getSwarmStats(userId);
 
-    // Calculate average execution time for completed swarms
-    const completedSwarmsWithTime = await prisma.researchSwarm.findMany({
+    // Get active swarms count (pending/running/processing)
+    const activeSwarms = await prisma.researchSwarm.count({
       where: {
         userId,
-        status: "completed",
-        executionTimeMs: { not: null },
-      },
-      select: {
-        executionTimeMs: true,
+        status: { in: ["pending", "running", "processing"] },
       },
     });
-
-    const avgTime =
-      completedSwarmsWithTime.length > 0
-        ? Math.round(
-            completedSwarmsWithTime.reduce(
-              (sum: number, swarm) => sum + (swarm.executionTimeMs || 0),
-              0
-            ) / completedSwarmsWithTime.length
-          )
-        : 0;
-
-    // Format average time as readable string
-    const avgTimeStr = formatDuration(avgTime);
-
-    // Calculate success rate
-    const totalCompleteOrFailed = completedSwarms + failedSwarms;
-    const successRate =
-      totalCompleteOrFailed > 0
-        ? Math.round((completedSwarms / totalCompleteOrFailed) * 100)
-        : 100;
 
     // Get recent insights (sample from recent findings)
     const recentFindings = await prisma.swarmFinding.findMany({
@@ -111,27 +70,23 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      stats: {
-        totalSwarms,
-        activeSwarms,
-        avgTime: avgTimeStr,
-        successRate: `${successRate}%`,
-        recentInsights: recentFindings.map(
-          (f: { content: string }) => f.content
-        ),
-      },
+    // Format response for backward compatibility
+    const avgTimeStr = formatDuration(stats.averageExecutionTimeMs);
+    const totalCompleteOrFailed = stats.completedSwarms + stats.failedSwarms;
+    const successRate =
+      totalCompleteOrFailed > 0
+        ? Math.round((stats.completedSwarms / totalCompleteOrFailed) * 100)
+        : 100;
+
+    return apiResponse.success({
+      totalSwarms: stats.totalSwarms,
+      activeSwarms,
+      avgTime: avgTimeStr,
+      successRate: `${successRate}%`,
+      recentInsights: recentFindings.map((f) => f.content),
     });
   } catch (error) {
-    console.error("Error fetching swarm stats:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to fetch stats",
-      },
-      { status: 400 }
-    );
+    return apiResponse.error(error as Error, 400);
   }
 }
 

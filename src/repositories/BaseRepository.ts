@@ -74,7 +74,10 @@ export abstract class BaseRepository<
   ): Promise<T[]> {
     return await this.model.findMany({
       where,
-      ...options,
+      ...(options?.orderBy && { orderBy: options.orderBy }),
+      ...(options?.take !== undefined && { take: options.take }),
+      ...(options?.skip !== undefined && { skip: options.skip }),
+      ...(options?.include && { include: options.include }),
     });
   }
 

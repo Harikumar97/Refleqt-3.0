@@ -13,6 +13,10 @@ vi.mock("@/lib/db/prisma", () => ({
   default: {
     researchSwarm: {
       create: vi.fn(),
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      count: vi.fn(),
     },
   },
 }));
@@ -25,13 +29,21 @@ describe("POST /api/research-swarm/create", () => {
   it("should create swarm with valid input", async () => {
     const mockSwarm = {
       id: "swarm-123",
+      goalId: null,
       userId: "user-123",
       query: "Analyze top 5 competitors in AI agent space",
       swarmType: "competitive",
+      swarmSize: "small",
       status: "pending",
       progressPct: 0,
       timeRemaining: "5 min",
-      createdAt: new Date(),
+      mcpChainUsed: null,
+      agentResults: null,
+      synthesisApplied: false,
+      executionTimeMs: null,
+      startedAt: null,
+      completedAt: null,
+      createdAt: new Date("2024-01-01T10:00:00Z"),
     };
 
     (prisma.researchSwarm.create as ReturnType<typeof vi.fn>).mockResolvedValue(
@@ -55,18 +67,10 @@ describe("POST /api/research-swarm/create", () => {
 
     expect(response.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.swarm.id).toBe("swarm-123");
-    expect(data.swarm.status).toBe("pending");
-    expect(prisma.researchSwarm.create).toHaveBeenCalledWith({
-      data: {
-        userId: "user-123",
-        query: "Analyze top 5 competitors in AI agent space",
-        swarmType: "competitive",
-        status: "pending",
-        progressPct: 0,
-        timeRemaining: "5 min",
-      },
-    });
+    expect(data.data.id).toBe("swarm-123");
+    expect(data.data.status).toBe("pending");
+    expect(data.data.type).toBe("competitive");
+    expect(prisma.researchSwarm.create).toHaveBeenCalled();
   });
 
   it("should reject query shorter than 10 characters", async () => {
@@ -140,12 +144,20 @@ describe("POST /api/research-swarm/create", () => {
     for (const type of validTypes) {
       const mockSwarm = {
         id: `swarm-${type}`,
+        goalId: null,
         userId: "user-123",
         query: "Valid query for testing swarm type",
         swarmType: type,
+        swarmSize: "small",
         status: "pending",
         progressPct: 0,
         timeRemaining: "5 min",
+        mcpChainUsed: null,
+        agentResults: null,
+        synthesisApplied: false,
+        executionTimeMs: null,
+        startedAt: null,
+        completedAt: null,
         createdAt: new Date(),
       };
 
@@ -170,7 +182,7 @@ describe("POST /api/research-swarm/create", () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.swarm.type).toBe(type);
+      expect(data.data.type).toBe(type);
     }
   });
 

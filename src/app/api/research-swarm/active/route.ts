@@ -22,81 +22,30 @@
  * - TODO: Replace with NextAuth session verification
  */
 
-import { type NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/db/prisma";
-import { assert } from "@/utils/assert";
-export async function GET(request: NextRequest): Promise<NextResponse> {
+import { type NextRequest } from "next/server";
+import { ResearchSwarmService } from "@/features/research-swarm/services/ResearchSwarmService";
+import { apiResponse } from "@/lib/api/response";
+
+const swarmService = new ResearchSwarmService();
+
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
     const userId = searchParams.get("userId");
+    const limit = searchParams.get("limit");
 
-    assert(!!userId, "userId is required");
+    if (!userId) {
+      return apiResponse.badRequest("userId is required");
+    }
 
-    // Get active and recent swarms
-    const swarms = await prisma.researchSwarm.findMany({
-      where: {
-        userId,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: 20, // Limit to 20 most recent
-      select: {
-        id: true,
-        query: true,
-        swarmType: true,
-        status: true,
-        progressPct: true,
-        timeRemaining: true,
-        createdAt: true,
-        startedAt: true,
-        completedAt: true,
-        executionTimeMs: true,
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      swarms: swarms.map(
-        (swarm: {
-          id: string;
-          query: string;
-          swarmType: string;
-          status: string;
-          progressPct: number;
-          timeRemaining: string | null;
-          createdAt: Date;
-        }) => ({
-          id: swarm.id,
-          query: swarm.query,
-          type: swarm.swarmType,
-          typeName: getTypeDisplayName(swarm.swarmType),
-          status: swarm.status,
-          progress: swarm.progressPct,
-          timeRemaining: swarm.timeRemaining,
-          timestamp: swarm.createdAt.getTime(),
-        })
-      ),
-    });
-  } catch (error) {
-    console.error("Error fetching active swarms:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to fetch swarms",
-      },
-      { status: 400 }
+    // Call service layer
+    const swarms = await swarmService.getActiveSwarms(
+      userId,
+      limit ? parseInt(limit) : undefined
     );
-  }
-}
 
-function getTypeDisplayName(type: string): string {
-  const typeNames: Record<string, string> = {
-    competitive: "Competitive Analysis",
-    market: "Market Research",
-    customer: "Customer Intelligence",
-    product: "Product Research",
-  };
-  return typeNames[type] || type;
+    return apiResponse.success(swarms);
+  } catch (error) {
+    return apiResponse.error(error as Error, 400);
+  }
 }

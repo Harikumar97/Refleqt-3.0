@@ -22,68 +22,32 @@
  * Future: Will enqueue BullMQ job for background processing with LangGraph
  */
 
-import { type NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/db/prisma";
-import { assert } from "@/utils/assert";
-export async function POST(request: NextRequest): Promise<NextResponse> {
+import { type NextRequest } from "next/server";
+import { ResearchSwarmService } from "@/features/research-swarm/services/ResearchSwarmService";
+import { apiResponse } from "@/lib/api/response";
+import type { CreateSwarmDto } from "@/features/research-swarm/types/dtos";
+
+const swarmService = new ResearchSwarmService();
+
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, query, swarmType } = body;
+    const { userId, query, swarmType, swarmSize, goalId } = body;
 
-    // Validate required fields
-    assert(userId, "userId is required");
-    assert(query, "query is required");
-    assert(swarmType, "swarmType is required");
+    // Create DTO
+    const dto: CreateSwarmDto = {
+      userId,
+      query,
+      swarmType,
+      swarmSize,
+      goalId,
+    };
 
-    // Validate query length
-    assert(
-      query.length >= 10 && query.length <= 500,
-      "Query must be between 10 and 500 characters"
-    );
+    // Call service layer
+    const swarm = await swarmService.createSwarm(dto);
 
-    // Validate swarm type
-    const validTypes = ["competitive", "market", "customer", "product"];
-    assert(
-      validTypes.includes(swarmType),
-      `Invalid swarmType. Must be one of: ${validTypes.join(", ")}`
-    );
-
-    // Create the swarm
-    const swarm = await prisma.researchSwarm.create({
-      data: {
-        userId,
-        query,
-        swarmType,
-        status: "pending",
-        progressPct: 0,
-        timeRemaining: "5 min",
-      },
-    });
-
-    // TODO: Enqueue swarm execution job with BullMQ
-    // For now, we'll return the created swarm
-
-    return NextResponse.json({
-      success: true,
-      swarm: {
-        id: swarm.id,
-        query: swarm.query,
-        type: swarm.swarmType,
-        status: swarm.status,
-        progress: swarm.progressPct,
-        timeRemaining: swarm.timeRemaining,
-        createdAt: swarm.createdAt,
-      },
-    });
+    return apiResponse.success(swarm);
   } catch (error) {
-    console.error("Error creating research swarm:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Failed to create swarm",
-      },
-      { status: 400 }
-    );
+    return apiResponse.error(error as Error, 400);
   }
 }
