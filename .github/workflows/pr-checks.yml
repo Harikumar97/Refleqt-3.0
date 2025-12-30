@@ -1,0 +1,109 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # Validate PR title follows conventional commits
+  pr-title-check:
+    name: Validate PR Title
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check PR title format
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+
+  # Check for conflicts
+  conflict-check:
+    name: Check for Merge Conflicts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for merge conflicts
+        uses: olivr/copybara-action@v1.2.3
+        with:
+          access_token: ${{ secrets.GITHUB_TOKEN }}
+          ssh_key: ""
+          sot_repo: ""
+          sot_branch: ""
+          destination_repo: ""
+          destination_branch: ""
+          workflow: "push"
+
+  # Size check
+  pr-size-check:
+    name: PR Size Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check PR size
+        run: |
+          BASE_SHA=${{ github.event.pull_request.base.sha }}
+          HEAD_SHA=${{ github.event.pull_request.head.sha }}
+
+          CHANGED_FILES=$(git diff --name-only $BASE_SHA $HEAD_SHA | wc -l)
+          LINES_ADDED=$(git diff --stat $BASE_SHA $HEAD_SHA | tail -1 | awk '{print $4}')
+
+          echo "Files changed: $CHANGED_FILES"
+          echo "Lines added: $LINES_ADDED"
+
+          # Warning for large PRs
+          if [ "$CHANGED_FILES" -gt 50 ]; then
+            echo "⚠️ Warning: This PR modifies $CHANGED_FILES files. Consider breaking it into smaller PRs."
+          fi
+
+          if [ "${LINES_ADDED:-0}" -gt 1000 ]; then
+            echo "⚠️ Warning: This PR adds $LINES_ADDED lines. Consider breaking it into smaller PRs."
+          fi
+
+  # Security scan
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          severity: "CRITICAL,HIGH"
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"

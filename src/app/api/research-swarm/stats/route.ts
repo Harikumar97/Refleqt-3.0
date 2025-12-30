@@ -1,11 +1,34 @@
+/**
+ * Research Swarm Statistics API
+ *
+ * GET /api/research-swarm/stats
+ *
+ * Purpose: Calculates and returns user performance metrics for research swarms
+ *
+ * Functionality:
+ * - Counts total, active, completed, and failed swarms
+ * - Calculates average execution time for completed swarms
+ * - Computes success rate (completed / (completed + failed))
+ * - Returns 3 most recent insights from completed swarms
+ *
+ * Query Parameters:
+ * - userId: Required (string) - User ID to calculate stats for
+ *
+ * Metrics:
+ * - totalSwarms: Total number of swarms created
+ * - activeSwarms: Count of pending/running/processing swarms
+ * - avgTime: Average execution time formatted as human-readable string (e.g., "2.5m")
+ * - successRate: Percentage of successful completions (e.g., "95%")
+ * - recentInsights: Array of 3 most recent findings
+ *
+ * Security:
+ * - User ownership verified via userId parameter
+ * - TODO: Replace with NextAuth session verification
+ */
+
 import { type NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db/prisma";
 import { assert } from "@/utils/assert";
-
-/**
- * GET /api/research-swarm/stats
- * Get user statistics for research swarms
- */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = request.nextUrl;

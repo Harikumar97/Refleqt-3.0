@@ -1,11 +1,30 @@
+/**
+ * Active Research Swarms List API
+ *
+ * GET /api/research-swarm/active
+ *
+ * Purpose: Retrieves list of active and recent research swarms for a user
+ *
+ * Functionality:
+ * - Fetches last 20 swarms sorted by creation date (desc)
+ * - Returns swarm metadata including status, progress, execution time
+ * - Maps internal swarmType to user-friendly display names
+ *
+ * Query Parameters:
+ * - userId: Required (string) - User ID to filter swarms
+ *
+ * Response:
+ * - success: boolean
+ * - swarms: Array of swarm objects with id, query, type, status, progress, timeRemaining
+ *
+ * Security:
+ * - User ownership verified via userId parameter
+ * - TODO: Replace with NextAuth session verification
+ */
+
 import { type NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db/prisma";
 import { assert } from "@/utils/assert";
-
-/**
- * GET /api/research-swarm/active
- * List active and recent swarms for a user
- */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = request.nextUrl;

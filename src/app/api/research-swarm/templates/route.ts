@@ -1,10 +1,37 @@
+/**
+ * Research Swarm Templates API
+ *
+ * GET /api/research-swarm/templates
+ * POST /api/research-swarm/templates
+ *
+ * Purpose: Manages research swarm templates (pre-built and custom)
+ *
+ * GET Functionality:
+ * - Returns system templates (userId=null) and user's custom public templates
+ * - Sorted by system templates first, then by usage count
+ * - Includes template metadata: id, title, description, icon, query, type
+ *
+ * POST Functionality:
+ * - Creates new custom template for user
+ * - Validates required fields (userId, title, query, swarmType)
+ * - Sets default icon (🔬) and empty description if not provided
+ * - Allows user to mark template as public or private
+ *
+ * Template Types:
+ * - System Templates: Created by platform (userId=null, 8 pre-built)
+ * - User Templates: Custom templates created by users
+ *
+ * Usage Count:
+ * - Tracks popularity of templates
+ * - TODO: Increment usageCount when template is used to create swarm
+ *
+ * Security:
+ * - GET: No auth required (system templates are public)
+ * - POST: Requires userId (TODO: verify session ownership)
+ */
+
 import { type NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db/prisma";
-
-/**
- * GET /api/research-swarm/templates
- * Get available swarm templates (system and user templates)
- */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     const { searchParams } = request.nextUrl;

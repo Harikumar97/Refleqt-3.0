@@ -1,3 +1,38 @@
+/**
+ * Research Swarm Results API
+ *
+ * GET /api/research-swarm/[id]/results
+ *
+ * Purpose: Retrieves comprehensive results for a completed research swarm
+ *
+ * Functionality:
+ * - Fetches swarm with all findings and recommendations
+ * - Verifies user ownership before returning results
+ * - Validates swarm is in 'completed' status
+ * - Aggregates unique sources from all findings
+ * - Returns formatted results with metadata
+ *
+ * URL Parameters:
+ * - id: Swarm UUID
+ *
+ * Query Parameters:
+ * - userId: Required (string) - For ownership verification
+ *
+ * Response Includes:
+ * - keyFindings: Array of research findings (string[])
+ * - recommendations: Array with action, impact, priority, timeline, effort, revenueImpact
+ * - sources: Unique list of all cited sources
+ * - metadata: swarmSize, agentCount, executionTime
+ *
+ * Error Cases:
+ * - 404: Swarm not found or unauthorized access
+ * - 400: Swarm not completed or validation error
+ *
+ * Security:
+ * - User ownership verified via userId + swarm.userId match
+ * - TODO: Replace with NextAuth session verification
+ */
+
 import { type NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db/prisma";
 import { assert } from "@/utils/assert";
@@ -5,11 +40,6 @@ import { assert } from "@/utils/assert";
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
-
-/**
- * GET /api/research-swarm/:id/results
- * Get detailed results for a completed swarm
- */
 export async function GET(
   request: NextRequest,
   context: RouteContext

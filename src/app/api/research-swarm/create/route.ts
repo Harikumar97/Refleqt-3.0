@@ -1,11 +1,30 @@
+/**
+ * Research Swarm Creation API
+ *
+ * POST /api/research-swarm/create
+ *
+ * Purpose: Creates a new research swarm for multi-agent competitive intelligence gathering
+ *
+ * Functionality:
+ * - Validates user input (query length, swarm type)
+ * - Creates swarm record in database with pending status
+ * - Returns swarm metadata for frontend tracking
+ *
+ * Validation:
+ * - userId: Required (string)
+ * - query: Required, 10-500 characters
+ * - swarmType: Required, must be 'competitive' | 'market' | 'customer' | 'product'
+ *
+ * Security:
+ * - Input validation via assert() utility
+ * - No authorization yet (TODO: add NextAuth session verification)
+ *
+ * Future: Will enqueue BullMQ job for background processing with LangGraph
+ */
+
 import { type NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db/prisma";
 import { assert } from "@/utils/assert";
-
-/**
- * POST /api/research-swarm/create
- * Create a new research swarm
- */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body = await request.json();

@@ -1,0 +1,593 @@
+# Refleqt 3.0 - Claude Code Project Instructions
+
+## Project Overview
+
+Refleqt 3.0 is an AI-powered competitive intelligence and research platform built with:
+- **Frontend**: Next.js 16.1 (App Router), React 19, TypeScript 5.9
+- **Backend**: Next.js API Routes, Prisma 7.2 (PostgreSQL + pgvector)
+- **LLMs**: LangChain + LangGraph for multi-agent orchestration
+- **Job Queue**: BullMQ + Redis (planned)
+- **Knowledge Graph**: Neo4j (planned)
+- **Authentication**: NextAuth 5.0 beta
+
+## Core Architecture Principles
+
+1. **Monorepo Structure**: All code in single Next.js app
+2. **Modular Routing**: API routes categorized by feature in separate directories
+3. **Type Safety**: Strict TypeScript, zero compilation errors policy
+4. **Test-Driven**: All features require unit tests with Vitest
+5. **Popular Stack**: Use well-established libraries (prefer older, stable versions)
+
+## File Creation Guidelines
+
+### MANDATORY: File Header Comments
+
+**Every file you create MUST start with comprehensive header comments** explaining:
+- Purpose of the file
+- What functionality it provides
+- Key parameters/interfaces/exports
+- Dependencies and relationships
+- Security considerations
+- TODO items for future work
+
+**Example for API Routes**:
+```typescript
+/**
+ * Research Swarm Creation API
+ *
+ * POST /api/research-swarm/create
+ *
+ * Purpose: Creates a new research swarm for multi-agent competitive intelligence gathering
+ *
+ * Functionality:
+ * - Validates user input (query length, swarm type)
+ * - Creates swarm record in database with pending status
+ * - Returns swarm metadata for frontend tracking
+ *
+ * Validation:
+ * - userId: Required (string)
+ * - query: Required, 10-500 characters
+ * - swarmType: Required, must be 'competitive' | 'market' | 'customer' | 'product'
+ *
+ * Security:
+ * - Input validation via assert() utility
+ * - No authorization yet (TODO: add NextAuth session verification)
+ *
+ * Future: Will enqueue BullMQ job for background processing with LangGraph
+ */
+```
+
+**Example for Components**:
+```typescript
+/**
+ * OnboardingModal Component
+ *
+ * Purpose: Multi-step smart onboarding flow for new users
+ *
+ * Features:
+ * - 6-7 steps based on user selections
+ * - Conditional flow (international scope adds extra step)
+ * - AI processing simulation with animated progress
+ * - Saves onboarding data to localStorage
+ *
+ * Props:
+ * - isOpen: boolean - Controls modal visibility
+ * - onClose: () => void - Callback when modal closes
+ *
+ * State Management:
+ * - Local state for form data and current step
+ * - No global state dependencies
+ */
+```
+
+### Directory Structure
+
+```
+refleqt-v3.0/
+├── .claude/
+│   ├── CLAUDE                  # This file - project instructions
+│   └── skills/
+│       └── modular-api-route.md  # How to build modular API routes
+├── src/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── feature-name/
+│   │   │       ├── route.ts          # Collection endpoints
+│   │   │       ├── route.test.ts     # Tests
+│   │   │       ├── [id]/route.ts     # Single item endpoints
+│   │   │       └── stats/route.ts    # Analytics endpoints
+│   │   ├── page.tsx            # Landing page
+│   │   └── portal/             # Authenticated app
+│   ├── components/
+│   │   └── feature-name/       # Feature-specific components
+│   ├── lib/
+│   │   ├── db/prisma.ts        # Prisma client singleton
+│   │   └── auth.ts             # NextAuth configuration
+│   └── utils/
+│       ├── assert.ts           # Validation utilities
+│       └── safety.ts           # Power of Ten safety rules
+├── prisma/
+│   ├── schema.prisma           # Database schema
+│   └── migrations/             # Migration history
+├── scripts/
+│   ├── seed-*.ts               # Database seeding scripts
+│   └── test-*.sh               # API testing scripts
+└── docs/
+    └── *.md                    # Feature documentation
+```
+
+## Code Style and Conventions
+
+### TypeScript
+
+- **Strict mode enabled**: All type errors must be resolved
+- **No `any` types**: Use proper type annotations
+- **Explicit return types**: For all functions
+- **Named exports**: Prefer over default exports (except Next.js pages/routes)
+
+### Naming Conventions
+
+- **Files**: kebab-case (e.g., `research-swarm-api.ts`)
+- **Components**: PascalCase (e.g., `OnboardingModal.tsx`)
+- **Functions**: camelCase (e.g., `createResearchSwarm`)
+- **Constants**: SCREAMING_SNAKE_CASE (e.g., `MAX_QUERY_LENGTH`)
+- **Database models**: PascalCase (e.g., `ResearchSwarm`)
+- **API routes**: kebab-case directories (e.g., `/api/research-swarm/`)
+
+### Import Organization
+
+```typescript
+// 1. External dependencies
+import { type NextRequest, NextResponse } from "next/server";
+import { describe, it, expect } from "vitest";
+
+// 2. Internal absolute imports (use @ alias)
+import prisma from "@/lib/db/prisma";
+import { assert } from "@/utils/assert";
+import { OnboardingModal } from "@/components/landing/OnboardingModal";
+
+// 3. Relative imports (avoid if possible)
+import { localHelper } from "./helpers";
+```
+
+## API Development Guidelines
+
+### Required Pattern for All API Routes
+
+```typescript
+/**
+ * [Comprehensive file header comment - see above]
+ */
+
+import { type NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/db/prisma";
+import { assert } from "@/utils/assert";
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  try {
+    // 1. Parse and extract data
+    const body = await request.json();
+    const { userId, requiredField } = body;
+
+    // 2. Validate inputs using assert()
+    assert(userId, "userId is required");
+    assert(requiredField, "requiredField is required");
+
+    // 3. Query database with user ownership filter
+    const result = await prisma.model.create({
+      data: {
+        userId,
+        requiredField,
+        status: "pending",
+      },
+    });
+
+    // 4. Return success response
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: result.id,
+        // ... other fields
+      },
+    });
+  } catch (error) {
+    // 5. Handle errors gracefully
+    console.error("Error in endpoint:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Operation failed",
+      },
+      { status: 400 }
+    );
+  }
+}
+```
+
+### Validation Rules
+
+- Use `assert()` for all validation (from `@/utils/assert`)
+- Validate required fields first
+- Check string lengths with specific limits
+- Use whitelist validation for enums
+- Add user ownership verification in WHERE clauses
+- Never trust client-provided data
+
+### Response Standards
+
+**Success responses**:
+```typescript
+{
+  success: true,
+  data: { /* actual data */ },
+  pagination: { /* optional */ }
+}
+```
+
+**Error responses**:
+```typescript
+{
+  success: false,
+  error: "Human-readable error message"
+}
+```
+
+## Database Patterns
+
+### Prisma Client Usage
+
+```typescript
+// Import singleton instance
+import prisma from "@/lib/db/prisma";
+
+// ALWAYS filter by userId for user ownership
+const items = await prisma.model.findMany({
+  where: { userId },  // CRITICAL for security
+  orderBy: { createdAt: "desc" },
+  take: 20,
+});
+
+// Use explicit types for map/filter/reduce
+const formatted = items.map((item: { id: string; name: string }) => ({
+  id: item.id,
+  name: item.name,
+}));
+```
+
+### Migration Workflow
+
+```bash
+# Create migration
+npx prisma migrate dev --name add_new_feature
+
+# Generate client after schema changes
+npx prisma generate
+
+# Apply migrations in production
+npx prisma migrate deploy
+```
+
+## Testing Requirements
+
+### Test Every Feature
+
+- **Unit tests**: For all API routes and utility functions
+- **Test file naming**: `*.test.ts` or `*.test.tsx`
+- **Test framework**: Vitest (already configured)
+- **Coverage target**: 80% minimum
+
+### Test Structure
+
+```typescript
+/**
+ * Test Suite for [Feature Name]
+ * Tests [specific functionality]
+ */
+
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { functionToTest } from "./module";
+
+describe("Feature Name", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("should handle valid input", () => {
+    const result = functionToTest(validInput);
+    expect(result).toBe(expectedOutput);
+  });
+
+  it("should reject invalid input", () => {
+    expect(() => functionToTest(invalidInput)).toThrow(Error);
+  });
+});
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+npm run test
+
+# Run tests in watch mode
+npm run test:ui
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in CI
+npm run test:run
+```
+
+## Development Workflow
+
+### Before Starting Work
+
+1. Run `git pull` to get latest changes
+2. Run `npx prisma generate` if schema changed
+3. Run `npm run type-check` to ensure clean slate
+4. Check existing code patterns in similar features
+
+### During Development
+
+1. Write file header comment FIRST
+2. Implement functionality
+3. Add validation and error handling
+4. Write unit tests
+5. Run `npx tsc --noEmit` frequently
+6. Test manually if building API routes
+
+### Before Committing
+
+1. Run `npm run type-check` - MUST pass
+2. Run `npm run test:run` - MUST pass
+3. Run `npm run format:check` - MUST pass
+4. Review your file header comments
+5. Ensure all TODO comments are tracked
+
+### Commit Messages
+
+```bash
+# Good commit messages
+git commit -m "Add Research Swarms MVP - Phase 1 implementation
+
+- Created 6 new Prisma models for swarm tracking
+- Implemented 5 RESTful API endpoints with validation
+- Added 8 system templates for competitive intelligence
+- Included comprehensive tests (90 total tests)
+- All TypeScript compilation errors resolved
+
+Next: Set up BullMQ job queue and LangGraph orchestration"
+
+# Bad commit messages (avoid)
+git commit -m "updates"
+git commit -m "fix bug"
+git commit -m "wip"
+```
+
+## Security Best Practices
+
+### User Data Isolation
+
+```typescript
+// ALWAYS include userId in WHERE clause
+const userItems = await prisma.model.findMany({
+  where: { userId },  // Prevents access to other users' data
+});
+
+// For single items
+const item = await prisma.model.findFirst({
+  where: {
+    id: itemId,
+    userId,  // User must own this item
+  },
+});
+```
+
+### Input Validation
+
+```typescript
+// Validate all user inputs
+assert(query.length >= 10 && query.length <= 500, "Invalid length");
+
+// Use whitelist for enums
+const VALID_TYPES = ["competitive", "market", "customer", "product"];
+assert(VALID_TYPES.includes(type), "Invalid type");
+
+// Sanitize before database operations
+// (Prisma handles parameterization automatically)
+```
+
+### Authentication Status
+
+**Current**: Client-provided `userId` (development only)
+**Future**: NextAuth session verification
+
+Add this TODO to all API routes:
+```typescript
+// TODO: Replace with NextAuth session verification
+```
+
+## Performance Guidelines
+
+1. **Limit query results**: Always use `take` (default: 20)
+2. **Select only needed fields**: Use `select` in Prisma queries
+3. **Parallel queries**: Use `Promise.all()` for independent queries
+4. **Avoid N+1**: Use `include` with proper relations
+5. **Index frequently queried fields**: userId, createdAt, status
+
+## Error Handling
+
+### Use try-catch for all async operations
+
+```typescript
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  try {
+    // ... operation
+  } catch (error) {
+    console.error("Error context:", error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Generic error",
+      },
+      { status: 400 }
+    );
+  }
+}
+```
+
+### Error Status Codes
+
+- **400**: Bad request / Validation error
+- **404**: Resource not found
+- **500**: Internal server error / Database error
+
+## Logging and Debugging
+
+### Console Logging
+
+```typescript
+// Development logging
+console.log("Debug info:", data);
+
+// Error logging (always include context)
+console.error("Error creating swarm:", error);
+
+// Warning logging
+console.warn("Deprecated feature used:", feature);
+```
+
+### Future: Structured Logging
+
+```typescript
+// TODO: Migrate to structured logging
+import { logger } from "@/lib/logger";
+
+logger.info("Swarm created", {
+  userId,
+  swarmId,
+  type: swarmType,
+});
+```
+
+## Common Mistakes to Avoid
+
+1. ❌ **Missing file header comments** - Every file needs them!
+2. ❌ **No user ownership filter** - Security vulnerability
+3. ❌ **Using `any` type** - Defeats TypeScript's purpose
+4. ❌ **Forgetting to validate inputs** - Use assert() consistently
+5. ❌ **Not writing tests** - Tests are mandatory
+6. ❌ **Committing type errors** - Run `npm run type-check` first
+7. ❌ **Missing TODO comments** - Document future work
+8. ❌ **Hardcoded values** - Use constants and environment variables
+
+## Environment Variables
+
+Required in `.env.local`:
+
+```bash
+# Database
+DATABASE_URL="postgresql://..."
+
+# Authentication
+NEXTAUTH_SECRET="..."
+NEXTAUTH_URL="http://localhost:3000"
+
+# LLM APIs (for Phase 2)
+ANTHROPIC_API_KEY="sk-ant-..."
+OPENAI_API_KEY="sk-..."
+PERPLEXITY_API_KEY="pplx-..."
+
+# Job Queue (for Phase 2)
+REDIS_URL="rediss://..."
+```
+
+Never commit `.env.local` or `.env` - they're gitignored.
+
+## Helpful Commands
+
+```bash
+# Development
+npm run dev                 # Start dev server
+npm run dev:safe            # Run fixes + validation + dev
+
+# Type checking
+npx tsc --noEmit            # Check types
+npm run type-check          # Same as above
+
+# Testing
+npm run test                # Run tests in watch mode
+npm run test:run            # Run tests once (CI mode)
+npm run test:coverage       # Generate coverage report
+
+# Database
+npx prisma studio           # Open database GUI
+npx prisma migrate dev      # Create + apply migration
+npx prisma generate         # Regenerate Prisma client
+npx prisma db push          # Push schema without migration
+
+# Formatting
+npm run format              # Format all files
+npm run format:check        # Check formatting
+npm run lint                # Run ESLint
+npm run lint:fix            # Fix ESLint errors
+
+# Safety checks
+npm run safety-check        # type-check + test + format check
+```
+
+## When You Get Stuck
+
+1. **Check similar implementations**: Look at `src/app/api/research-swarm/` for API patterns
+2. **Read the SKILL file**: `.claude/skills/modular-api-route.md`
+3. **Check Prisma schema**: `prisma/schema.prisma` for available models
+4. **Run tests**: See what's already tested for patterns
+5. **Check documentation**: `docs/` folder for feature docs
+
+## Special Instructions for Claude Code
+
+- **Always read files before editing** - Never propose changes to code you haven't seen
+- **Use TodoWrite tool** - Track tasks in multi-step implementations
+- **Check for existing patterns** - Don't reinvent the wheel
+- **Prefer editing over creating** - Modify existing files when possible
+- **Run type-check frequently** - Catch errors early
+- **Write tests as you go** - Don't defer testing to the end
+
+## MCP Database Access
+
+TODO: Set up read-only MCP server for database inspection
+- Helps Claude debug autonomously
+- View data without running queries manually
+- Inspect schema and relationships
+
+## Tmux Configuration
+
+TODO: Set up tmux for frontend and backend processes
+- Window 1: `npm run dev` (Next.js dev server)
+- Window 2: Logs and testing
+- Allows Claude to tail logs when needed
+
+## Current Phase: MVP Complete
+
+**Phase 1 (MVP)** - ✅ Complete
+- Database schema for Research Swarms
+- 5 API endpoints with validation
+- 8 system templates
+- Unit tests framework
+- Type-safe implementation
+
+**Phase 2 (In Progress)** - Next steps:
+- BullMQ job queue setup
+- LangGraph multi-agent orchestration
+- WebSocket real-time updates
+- Frontend dashboard components
+- NextAuth integration
+
+## Remember
+
+- **Quality over speed**: Take time to write good code
+- **Security first**: Always validate and filter by userId
+- **Test everything**: No untested code in production
+- **Document as you go**: Future you (and others) will thank you
+- **Ask when unsure**: Better to clarify than to guess
