@@ -37,6 +37,9 @@ model User {
   psychographicSegs   PsychographicSegment[]
   breweryOutputs      BreweryOutput[]
   obsessionScores     ObsessionScore[]
+  swarmTemplates      SwarmTemplate[]
+  swarmSettings       SwarmSettings?
+  swarmAnalytics      SwarmAnalytics[]
   accounts            Account[]
   sessions            Session[]
 
@@ -214,10 +217,11 @@ model ResearchSwarm {
   goalId           String?   @map("goal_id") // nullable for ad-hoc queries
   userId           String    @map("user_id")
   query            String    @db.Text
-  swarmType        String    @map("swarm_type") // 'competitive', 'market', 'technical', 'customer'
+  swarmType        String    @map("swarm_type") // 'competitive', 'market', 'customer', 'product'
   swarmSize        String    @default("small") @map("swarm_size") // 'small' (3 agents), 'large' (8 agents)
-  status           String    @default("pending") // 'pending', 'running', 'synthesizing', 'completed', 'failed'
+  status           String    @default("pending") // 'pending', 'running', 'processing', 'completed', 'failed'
   progressPct      Int       @default(0) @map("progress_percent")
+  timeRemaining    String?   @map("time_remaining") // e.g., "2 min", "5 min"
   mcpChainUsed     Json?     @map("mcp_chain_used") // actual MCP chain executed
   agentResults     Json?     @map("agent_results") // raw agent outputs
   synthesisApplied Boolean   @default(false) @map("synthesis_applied")
@@ -227,10 +231,11 @@ model ResearchSwarm {
   createdAt        DateTime  @default(now()) @map("created_at")
 
   // Relations
-  goal            ResearchGoal?       @relation(fields: [goalId], references: [id], onDelete: SetNull)
-  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal            ResearchGoal?         @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   findings        SwarmFinding[]
   synthesizedData SynthesizedInsight[]
+  recommendations SwarmRecommendation[]
 
   @@index([userId, status])
   @@index([createdAt(sort: Desc)])
@@ -253,6 +258,84 @@ model SwarmFinding {
   swarm ResearchSwarm @relation(fields: [swarmId], references: [id], onDelete: Cascade)
 
   @@map("swarm_findings")
+}
+
+// Strategic Recommendations from Swarms
+model SwarmRecommendation {
+  id            String   @id @default(uuid())
+  swarmId       String   @map("swarm_id")
+  action        String   @db.Text
+  impact        String   @db.Text
+  priority      String // 'HIGH', 'MEDIUM', 'LOW'
+  timeline      String
+  effort        String
+  revenueImpact String?  @map("revenue_impact")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  swarm ResearchSwarm @relation(fields: [swarmId], references: [id], onDelete: Cascade)
+
+  @@index([swarmId, priority])
+  @@map("swarm_recommendations")
+}
+
+// Pre-built Swarm Templates
+model SwarmTemplate {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id") // null = system template
+  title       String
+  description String   @db.Text
+  icon        String
+  query       String   @db.Text
+  swarmType   String   @map("swarm_type") // 'competitive', 'market', 'customer', 'product'
+  isPublic    Boolean  @default(false) @map("is_public")
+  usageCount  Int      @default(0) @map("usage_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isPublic])
+  @@index([swarmType])
+  @@map("swarm_templates")
+}
+
+// User Swarm Configuration
+model SwarmSettings {
+  id               String   @id @default(uuid())
+  userId           String   @unique @map("user_id")
+  researchDepth    String   @default("STANDARD") @map("research_depth") // 'STANDARD', 'DEEP', 'COMPREHENSIVE'
+  analysisSpeed    String   @default("BALANCED") @map("analysis_speed") // 'FAST', 'BALANCED', 'THOROUGH'
+  resultFormat     String   @default("EXECUTIVE") @map("result_format") // 'EXECUTIVE', 'DETAILED', 'ACTION_ORIENTED'
+  dataSources      String[] @map("data_sources") // Array of enabled sources
+  notifications    Json // Notification preferences
+  focusAreas       String[] @map("focus_areas") // Industry focus areas
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("swarm_settings")
+}
+
+// Analytics for Swarm Performance
+model SwarmAnalytics {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  date            DateTime
+  totalSwarms     Int      @map("total_swarms")
+  completedSwarms Int      @map("completed_swarms")
+  failedSwarms    Int      @map("failed_swarms")
+  avgDuration     Int      @map("avg_duration") // milliseconds
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@index([date])
+  @@map("swarm_analytics")
 }
 
 // Synthesized Insights (finite introspect output - max 10)
