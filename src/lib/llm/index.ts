@@ -16,10 +16,10 @@ class LLMRouter {
   private defaultProvider: LLMProvider = 'claude';
 
   constructor() {
-    this.providers = new Map([
-      ['claude', claude],
-      ['openai', openai],
-      ['gemini', gemini],
+    this.providers = new Map<LLMProvider, LLMService>([
+      ['claude', claude as LLMService],
+      ['openai', openai as LLMService],
+      ['gemini', gemini as LLMService],
     ]);
   }
 

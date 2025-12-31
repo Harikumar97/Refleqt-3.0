@@ -1,15 +1,12 @@
 /**
- * Research Swarm Execution API
+ * Research Swarm Execution API with Multi-LLM Support
  * Execute strategy cohort queries and research goals
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { assert } from "@/utils/assert";
-import { LLMRouter } from "@/lib/llm/router/llm-router";
 import { MCPOrchestrator } from "@/lib/research-swarm/mcp-orchestrator";
 import prisma from "@/lib/db/prisma";
-
-const llmRouter = LLMRouter.fromEnv();
 
 /**
  * POST /api/research-swarm/execute
@@ -45,8 +42,12 @@ export async function POST(request: NextRequest) {
       ...(userProfile?.industry && { industry: userProfile.industry }),
     };
 
-    // Execute strategy cohort
-    const orchestrator = new MCPOrchestrator(llmRouter);
+    // Execute strategy cohort with multi-provider ensemble for high obsession scores
+    // High obsession users get multi-LLM analysis for better insights
+    const orchestrator = new MCPOrchestrator({
+      enableMultiProvider: obsessionScore >= 8,
+      providers: ["claude", "openai", "gemini"],
+    });
     const result = await orchestrator.executeStrategyCohort(query, userContext);
 
     // Store results in database
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
       data: {
         swarmId: swarm.id,
         query,
-        insights: insights.map((i) => ({
+        insights: insights.map((i: any) => ({
           id: i.id,
           title: i.title,
           content: i.content,

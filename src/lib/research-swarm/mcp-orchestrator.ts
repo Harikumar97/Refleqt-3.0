@@ -1,10 +1,10 @@
 /**
  * MCP Orchestrator
- * Main coordinator for Research Swarm system
+ * Main coordinator for Research Swarm system with multi-LLM support
  * Handles goal parsing, chain construction, swarm execution, and synthesis
  */
 
-import type { LLMRouter } from "../llm/router/llm-router";
+import type { LLMProvider } from "../llm/types";
 import { MCPChainBuilder } from "./mcp-chain-builder";
 import { SwarmExecutor } from "./swarm-executor";
 import { SynthesisEngine } from "./synthesis-engine";
@@ -22,9 +22,12 @@ export class MCPOrchestrator {
   private swarmExecutor: SwarmExecutor;
   private synthesisEngine: SynthesisEngine;
 
-  constructor(llmRouter: LLMRouter) {
-    this.swarmExecutor = new SwarmExecutor(llmRouter);
-    this.synthesisEngine = new SynthesisEngine(llmRouter);
+  constructor(options?: {
+    enableMultiProvider?: boolean;
+    providers?: LLMProvider[];
+  }) {
+    this.swarmExecutor = new SwarmExecutor(options);
+    this.synthesisEngine = new SynthesisEngine();
   }
 
   /**

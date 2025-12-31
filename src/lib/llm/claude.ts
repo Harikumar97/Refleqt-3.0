@@ -12,7 +12,7 @@ export class ClaudeService implements LLMService {
 
   constructor(apiKey?: string) {
     this.client = new Anthropic({
-      apiKey: apiKey || process.env.ANTHROPIC_API_KEY,
+      apiKey: apiKey || process.env['ANTHROPIC_API_KEY'],
     });
   }
 
@@ -43,12 +43,12 @@ export class ClaudeService implements LLMService {
         model,
         max_tokens: maxTokens,
         temperature,
-        system,
+        ...(system && { system }),
         messages: claudeMessages,
       });
 
-      const content = response.content[0];
-      const text = content.type === 'text' ? content.text : '';
+      const content = response.content?.[0];
+      const text = content?.type === 'text' ? content.text : '';
 
       return {
         content: text,
@@ -69,7 +69,7 @@ export class ClaudeService implements LLMService {
 
 // Lazy-loaded singleton
 let _instance: ClaudeService | null = null;
-export const claude = {
+export const claude: LLMService & { instance: ClaudeService } = {
   get instance(): ClaudeService {
     if (!_instance) {
       _instance = new ClaudeService();
@@ -82,4 +82,4 @@ export const claude = {
   chat: async (messages: LLMMessage[], options?: LLMCompletionOptions) => {
     return claude.instance.chat(messages, options);
   },
-} as LLMService;
+};

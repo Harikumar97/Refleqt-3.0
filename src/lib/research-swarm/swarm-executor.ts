@@ -1,9 +1,10 @@
 /**
  * Swarm Executor
- * Executes parallel AI agent swarms for research
+ * Executes parallel AI agent swarms for research with multi-LLM support
  */
 
-import type { LLMRouter } from "../llm/router/llm-router";
+import { llm } from "../llm";
+import type { LLMProvider, LLMResponse } from "../llm/types";
 import type {
   MCPChain,
   SwarmAgentConfig,
@@ -13,10 +14,20 @@ import type {
 } from "./types";
 
 export class SwarmExecutor {
-  constructor(private llmRouter: LLMRouter) {}
+  private enableMultiProvider: boolean;
+  private providers: LLMProvider[];
+
+  constructor(options?: {
+    enableMultiProvider?: boolean;
+    providers?: LLMProvider[];
+  }) {
+    this.enableMultiProvider = options?.enableMultiProvider ?? false;
+    this.providers = options?.providers ?? ["claude", "openai", "gemini"];
+  }
 
   /**
    * Execute a research swarm with parallel AI agents
+   * Supports multi-provider execution for ensemble intelligence
    */
   async executeSwarm(
     swarmId: string,
@@ -110,7 +121,7 @@ export class SwarmExecutor {
   }
 
   /**
-   * Execute a single agent
+   * Execute a single agent with optional multi-provider ensemble
    */
   private async executeAgent(
     agent: SwarmAgentConfig,
@@ -122,6 +133,14 @@ export class SwarmExecutor {
       // Build prompt based on agent role and chain steps
       const prompt = this.buildAgentPrompt(agent, chain);
 
+      // Build LLM options
+      const options = {
+        systemPrompt:
+          "You are an expert research agent. Provide detailed, structured analysis.",
+        maxTokens: agent.depth === "deep" ? 2000 : 1000,
+        temperature: 0.7,
+      };
+
       // Execute LLM call with timeout
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(
@@ -130,32 +149,46 @@ export class SwarmExecutor {
         )
       );
 
-      // Execute LLM call using llmRouter
-      const llmPromise = this.llmRouter.complete({
-        task:
+      let llmResult: LLMResponse | LLMResponse[];
+
+      if (this.enableMultiProvider) {
+        // Execute across all providers in parallel for ensemble intelligence
+        const llmPromise = llm.multiProviderCompletion(
+          prompt,
+          this.providers,
+          options
+        );
+        llmResult = await Promise.race([llmPromise, timeoutPromise]);
+      } else {
+        // Execute with smart routing based on task type
+        const taskType =
           agent.role === "analyzer"
-            ? "competitive_analysis"
-            : "insight_generation",
-        prompt,
-        systemPrompt:
-          "You are an expert research agent. Provide detailed, structured analysis.",
-        maxTokens: agent.depth === "deep" ? 2000 : 1000,
-        temperature: 0.7,
-      });
-
-      const llmResult = await Promise.race([llmPromise, timeoutPromise]);
-
-      // Check if LLM call was successful
-      if (!llmResult.success) {
-        throw new Error(llmResult.error?.message || "LLM call failed");
+            ? "analysis"
+            : agent.role === "synthesizer"
+            ? "research"
+            : "research";
+        const llmPromise = llm.smartComplete(prompt, taskType, options);
+        llmResult = await Promise.race([llmPromise, timeoutPromise]);
       }
+
+      // Aggregate responses if multi-provider
+      const aggregatedContent = Array.isArray(llmResult)
+        ? this.aggregateMultiProviderResponses(llmResult)
+        : llmResult.content;
 
       return {
         agentId: agent.agentId,
         role: agent.role,
         success: true,
-        data: llmResult.value.content,
+        data: aggregatedContent,
         executionTimeMs: Date.now() - startTime,
+        ...(Array.isArray(llmResult) && {
+          metadata: {
+            multiProvider: true,
+            providers: llmResult.map((r) => r.provider),
+            responseCounts: llmResult.length,
+          },
+        }),
       };
     } catch (error) {
       return {
@@ -166,6 +199,23 @@ export class SwarmExecutor {
         executionTimeMs: Date.now() - startTime,
       };
     }
+  }
+
+  /**
+   * Aggregate responses from multiple LLM providers into a single coherent response
+   */
+  private aggregateMultiProviderResponses(responses: LLMResponse[]): string {
+    const header = `# Multi-Provider Ensemble Analysis\n\n`;
+    const providerSections = responses
+      .map(
+        (response, index) =>
+          `## Response ${index + 1}: ${response.provider.toUpperCase()} (${response.model})\n\n${response.content}\n`
+      )
+      .join("\n---\n\n");
+
+    const synthesis = `\n---\n\n## Ensemble Synthesis\n\nThis analysis aggregates insights from ${responses.length} AI providers (${responses.map((r) => r.provider).join(", ")}). The diverse perspectives above can be synthesized to:\n\n1. **Cross-validate findings**: Compare consistent insights across providers\n2. **Identify unique perspectives**: Note where providers differ in their analysis\n3. **Build confidence**: Findings mentioned by multiple providers are more reliable\n4. **Reduce bias**: Multiple providers help mitigate individual model biases\n`;
+
+    return header + providerSections + synthesis;
   }
 
   /**

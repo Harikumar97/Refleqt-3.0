@@ -11,7 +11,7 @@ export class GeminiService implements LLMService {
   private defaultModel = 'gemini-1.5-flash';
 
   constructor(apiKey?: string) {
-    this.client = new GoogleGenerativeAI(apiKey || process.env.GOOGLE_API_KEY || '');
+    this.client = new GoogleGenerativeAI(apiKey || process.env['GOOGLE_API_KEY'] || '');
   }
 
   async complete(prompt: string, options?: LLMCompletionOptions): Promise<LLMResponse> {
@@ -49,6 +49,9 @@ export class GeminiService implements LLMService {
       });
 
       const lastMessage = messages[messages.length - 1];
+      if (!lastMessage) {
+        throw new Error('No messages provided');
+      }
       const result = await chat.sendMessage(lastMessage.content);
       const response = result.response;
       const content = response.text();
@@ -72,7 +75,7 @@ export class GeminiService implements LLMService {
 
 // Lazy-loaded singleton
 let _instance: GeminiService | null = null;
-export const gemini = {
+export const gemini: LLMService & { instance: GeminiService } = {
   get instance(): GeminiService {
     if (!_instance) {
       _instance = new GeminiService();
@@ -85,4 +88,4 @@ export const gemini = {
   chat: async (messages: LLMMessage[], options?: LLMCompletionOptions) => {
     return gemini.instance.chat(messages, options);
   },
-} as LLMService;
+};

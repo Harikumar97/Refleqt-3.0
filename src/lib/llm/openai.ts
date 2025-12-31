@@ -12,7 +12,7 @@ export class OpenAIService implements LLMService {
 
   constructor(apiKey?: string) {
     this.client = new OpenAI({
-      apiKey: apiKey || process.env.OPENAI_API_KEY,
+      apiKey: apiKey || process.env['OPENAI_API_KEY'],
     });
   }
 
@@ -45,10 +45,13 @@ export class OpenAIService implements LLMService {
         model,
         messages: openaiMessages as any,
         temperature,
-        max_tokens: maxTokens,
+        ...(maxTokens && { max_tokens: maxTokens }),
       });
 
-      const choice = response.choices[0];
+      const choice = response.choices?.[0];
+      if (!choice) {
+        throw new Error('No response choices returned from OpenAI');
+      }
       const content = choice.message.content || '';
 
       return {
@@ -61,7 +64,11 @@ export class OpenAIService implements LLMService {
               completionTokens: response.usage.completion_tokens,
               totalTokens: response.usage.total_tokens,
             }
-          : undefined,
+          : {
+              promptTokens: 0,
+              completionTokens: 0,
+              totalTokens: 0,
+            },
       };
     } catch (error) {
       console.error('OpenAI API error:', error);
@@ -72,7 +79,7 @@ export class OpenAIService implements LLMService {
 
 // Lazy-loaded singleton
 let _instance: OpenAIService | null = null;
-export const openai = {
+export const openai: LLMService & { instance: OpenAIService } = {
   get instance(): OpenAIService {
     if (!_instance) {
       _instance = new OpenAIService();
@@ -85,4 +92,4 @@ export const openai = {
   chat: async (messages: LLMMessage[], options?: LLMCompletionOptions) => {
     return openai.instance.chat(messages, options);
   },
-} as LLMService;
+};

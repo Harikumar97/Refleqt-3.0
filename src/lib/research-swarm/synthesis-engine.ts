@@ -4,7 +4,7 @@
  * Converts raw findings into bounded, actionable insights (max 10)
  */
 
-import type { LLMRouter } from "../llm/router/llm-router";
+import { llm } from "../llm";
 import type {
   RawFinding,
   SynthesizedInsight,
@@ -14,7 +14,7 @@ import type {
 } from "./types";
 
 export class SynthesisEngine {
-  constructor(private llmRouter: LLMRouter) {}
+  constructor() {}
 
   /**
    * Synthesize raw findings into finite insights (max 10)
@@ -102,26 +102,20 @@ Format your response as JSON array:
 Provide 5-15 synthesized insights. Be concise but comprehensive.`;
 
     try {
-      // Execute LLM synthesis
-      const llmResult = await this.llmRouter.complete({
-        task: "insight_generation",
-        prompt: synthesisPrompt,
-        systemPrompt:
-          "You are an expert business intelligence analyst. Always respond with valid JSON arrays.",
-        maxTokens: 3000,
-        temperature: 0.3, // Lower temperature for consistent synthesis
-      });
-
-      if (!llmResult.success) {
-        console.warn(
-          "LLM synthesis failed, using fallback:",
-          llmResult.error?.message
-        );
-        return this.fallbackSynthesis(rawFindings);
-      }
+      // Execute LLM synthesis with smart routing (research task → Claude)
+      const llmResult = await llm.smartComplete(
+        synthesisPrompt,
+        "research",
+        {
+          systemPrompt:
+            "You are an expert business intelligence analyst. Always respond with valid JSON arrays.",
+          maxTokens: 3000,
+          temperature: 0.3, // Lower temperature for consistent synthesis
+        }
+      );
 
       // Parse JSON response from LLM
-      const parsed = this.parseJSONResponse(llmResult.value.content);
+      const parsed = this.parseJSONResponse(llmResult.content);
 
       // Convert to SynthesizedInsight format
       return parsed.map((item: any) => ({
