@@ -3,10 +3,12 @@
 
 generator client {
   provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "sqlite"
+  provider   = "postgresql"
+  extensions = [pgvector(map: "vector", schema: "public")]
 }
 
 // ============================================================================
@@ -152,7 +154,7 @@ model IntelligenceItem {
   publishedAt    DateTime?                    @map("published_at")
   fetchedAt      DateTime                     @default(now()) @map("fetched_at")
   relevanceScore Decimal?                     @map("relevance_score")
-  // embedding      Unsupported("vector(1536)")? // pgvector for semantic search - disabled for SQLite
+  embedding      Unsupported("vector(1536)")
   metadata       Json? // flexible storage for source-specific data
   createdAt      DateTime                     @default(now()) @map("created_at")
 
@@ -305,9 +307,9 @@ model SwarmSettings {
   researchDepth    String   @default("STANDARD") @map("research_depth") // 'STANDARD', 'DEEP', 'COMPREHENSIVE'
   analysisSpeed    String   @default("BALANCED") @map("analysis_speed") // 'FAST', 'BALANCED', 'THOROUGH'
   resultFormat     String   @default("EXECUTIVE") @map("result_format") // 'EXECUTIVE', 'DETAILED', 'ACTION_ORIENTED'
-  dataSources      String @map("data_sources") // Array of enabled sources
+  dataSources      String[] @map("data_sources") // Array of enabled sources
   notifications    Json // Notification preferences
-  focusAreas       String @map("focus_areas") // Industry focus areas
+  focusAreas       String[] @map("focus_areas") // Industry focus areas
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -347,10 +349,10 @@ model SynthesizedInsight {
   priorityScore     Decimal                      @map("priority_score") // 0.0-1.0
   relevanceScore    Decimal                      @map("relevance_score") // 0.0-1.0
   isActionable      Boolean                      @default(false) @map("is_actionable")
-  actionItems       String // max 5 action items
-  sourceFindingIds  String                     @map("source_finding_ids") // references to SwarmFindings
-  // embedding         Unsupported("vector(1536)")? // for Knowledge Traverse - disabled for SQLite
-  psychographicTags String                     @map("psychographic_tags")
+  actionItems       String[] // max 5 action items
+  sourceFindingIds  String[]                     @map("source_finding_ids") // references to SwarmFindings
+  embedding      Unsupported("vector(1536)")
+  psychographicTags String[]                     @map("psychographic_tags")
   displayPosition   Int?                         @map("display_position") // 1-10 for finite introspect
   dismissedAt       DateTime?                    @map("dismissed_at")
   createdAt         DateTime                     @default(now()) @map("created_at")
@@ -373,7 +375,7 @@ model KnowledgeNode {
   nodeContent    String?  @map("node_content")
   hierarchyLevel String   @map("hierarchy_level") // 'strategic', 'tactical', 'operational'
   depth          Int      @default(0) // tree depth (0 = root)
-  insightIds     String @map("insight_ids") // linked insights
+  insightIds     String[] @map("insight_ids") // linked insights
   relevanceScore Decimal  @map("relevance_score")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
@@ -397,7 +399,7 @@ model StrategyCohort {
   userId         String    @map("user_id")
   name           String
   description    String?  
-  competitorIds  String  @map("competitor_ids") // array of competitor IDs
+  competitorIds  String[]  @map("competitor_ids") // array of competitor IDs
   analysisType   String?   @map("analysis_type") // 'pricing', 'features', 'content', 'social'
   lastAnalyzedAt DateTime? @map("last_analyzed_at")
   createdAt      DateTime  @default(now()) @map("created_at")
@@ -413,7 +415,7 @@ model CohortAnalysis {
   id           String   @id @default(uuid())
   cohortId     String   @map("cohort_id")
   analysisData Json     @map("analysis_data") // flexible schema for different analysis types
-  insights     String // array of insight strings
+  insights     String[] // array of insight strings
   createdAt    DateTime @default(now()) @map("created_at")
 
   // Relations
@@ -467,7 +469,7 @@ model BreweryOutput {
   outputType   String    @map("output_type") // 'newsletter', 'brief', 'alert'
   title        String   
   content      String   
-  sourceItems  String  @map("source_items") // array of intelligence_item IDs
+  sourceItems  String[]  @map("source_items") // array of intelligence_item IDs
   status       String    @default("brewing") // 'brewing', 'ready', 'delivered'
   scheduledFor DateTime? @map("scheduled_for")
   deliveredAt  DateTime? @map("delivered_at")
@@ -486,7 +488,7 @@ model BreweryOutput {
 model ObsessionScore {
   id           String   @id @default(uuid())
   userId       String   @map("user_id")
-  score        Decimal  // 0.0 to 10.0
+  score        Decimal @db.Decimal(3, 1)  // 0.0 to 10.0
   calculatedAt DateTime @default(now()) @map("calculated_at")
   factors      Json? // breakdown of score components
 
