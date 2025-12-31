@@ -1,9 +1,9 @@
 -- Refleqt v3.0 - PostgreSQL Schema for Supabase
 -- Run this BEFORE applying RLS policies
 
--- Enable pgvector extension (move to extensions schema to avoid warnings)
-CREATE SCHEMA IF NOT EXISTS extensions;
-CREATE EXTENSION IF NOT EXISTS vector SCHEMA extensions;
+-- Enable pgvector extension
+-- Note: Supabase may already have this enabled. If you get an error, skip this line.
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;
 
 -- ============================================================================
 -- Users & Authentication
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS public.intelligence_items (
   published_at TIMESTAMPTZ,
   fetched_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   relevance_score DECIMAL(3, 2),
-  embedding extensions.vector(1536),
+  embedding vector(1536),
   metadata JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
@@ -250,7 +250,7 @@ CREATE TABLE IF NOT EXISTS public.synthesized_insights (
   is_actionable BOOLEAN DEFAULT false NOT NULL,
   action_items TEXT[] NOT NULL DEFAULT '{}',
   source_finding_ids TEXT[] NOT NULL DEFAULT '{}',
-  embedding extensions.vector(1536),
+  embedding vector(1536),
   psychographic_tags TEXT[] NOT NULL DEFAULT '{}',
   display_position INTEGER,
   dismissed_at TIMESTAMPTZ,
