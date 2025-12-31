@@ -70,4 +70,19 @@ export class OpenAIService implements LLMService {
   }
 }
 
-export const openai = new OpenAIService();
+// Lazy-loaded singleton
+let _instance: OpenAIService | null = null;
+export const openai = {
+  get instance(): OpenAIService {
+    if (!_instance) {
+      _instance = new OpenAIService();
+    }
+    return _instance;
+  },
+  complete: async (prompt: string, options?: LLMCompletionOptions) => {
+    return openai.instance.complete(prompt, options);
+  },
+  chat: async (messages: LLMMessage[], options?: LLMCompletionOptions) => {
+    return openai.instance.chat(messages, options);
+  },
+} as LLMService;

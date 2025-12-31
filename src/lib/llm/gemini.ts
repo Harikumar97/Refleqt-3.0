@@ -70,4 +70,19 @@ export class GeminiService implements LLMService {
   }
 }
 
-export const gemini = new GeminiService();
+// Lazy-loaded singleton
+let _instance: GeminiService | null = null;
+export const gemini = {
+  get instance(): GeminiService {
+    if (!_instance) {
+      _instance = new GeminiService();
+    }
+    return _instance;
+  },
+  complete: async (prompt: string, options?: LLMCompletionOptions) => {
+    return gemini.instance.complete(prompt, options);
+  },
+  chat: async (messages: LLMMessage[], options?: LLMCompletionOptions) => {
+    return gemini.instance.chat(messages, options);
+  },
+} as LLMService;

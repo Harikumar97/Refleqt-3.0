@@ -67,4 +67,19 @@ export class ClaudeService implements LLMService {
   }
 }
 
-export const claude = new ClaudeService();
+// Lazy-loaded singleton
+let _instance: ClaudeService | null = null;
+export const claude = {
+  get instance(): ClaudeService {
+    if (!_instance) {
+      _instance = new ClaudeService();
+    }
+    return _instance;
+  },
+  complete: async (prompt: string, options?: LLMCompletionOptions) => {
+    return claude.instance.complete(prompt, options);
+  },
+  chat: async (messages: LLMMessage[], options?: LLMCompletionOptions) => {
+    return claude.instance.chat(messages, options);
+  },
+} as LLMService;
