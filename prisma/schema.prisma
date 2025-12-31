@@ -154,7 +154,7 @@ model IntelligenceItem {
   publishedAt    DateTime?                    @map("published_at")
   fetchedAt      DateTime                     @default(now()) @map("fetched_at")
   relevanceScore Decimal?                     @map("relevance_score")
-  embedding      Unsupported("vector(1536)")
+  // embedding      Unsupported("vector(1536)") // TODO: Re-enable after pgvector setup
   metadata       Json? // flexible storage for source-specific data
   createdAt      DateTime                     @default(now()) @map("created_at")
 
@@ -351,7 +351,7 @@ model SynthesizedInsight {
   isActionable      Boolean                      @default(false) @map("is_actionable")
   actionItems       String[] // max 5 action items
   sourceFindingIds  String[]                     @map("source_finding_ids") // references to SwarmFindings
-  embedding      Unsupported("vector(1536)")
+  // embedding      Unsupported("vector(1536)") // TODO: Re-enable after pgvector setup
   psychographicTags String[]                     @map("psychographic_tags")
   displayPosition   Int?                         @map("display_position") // 1-10 for finite introspect
   dismissedAt       DateTime?                    @map("dismissed_at")
@@ -398,30 +398,105 @@ model StrategyCohort {
   id             String    @id @default(uuid())
   userId         String    @map("user_id")
   name           String
-  description    String?  
-  competitorIds  String[]  @map("competitor_ids") // array of competitor IDs
-  analysisType   String?   @map("analysis_type") // 'pricing', 'features', 'content', 'social'
+  description    String?
+  query          String?   // User's analysis query/question
+  status         String    @default("draft") // 'draft', 'analyzing', 'completed', 'failed'
+  analysisType   String    @default("insights") @map("analysis_type") // 'insights', 'scenarios', 'opportunities', 'deep-dive'
+
+  // Configuration options
+  includeFinancial  Boolean @default(false) @map("include_financial")
+  includeSocial     Boolean @default(true) @map("include_social")
+  includeTech       Boolean @default(false) @map("include_tech")
+  includeSentiment  Boolean @default(true) @map("include_sentiment")
+
+  // Results metadata
+  executionTimeMs   Int?     @map("execution_time_ms")
+  confidence        Decimal? @db.Decimal(5, 2) @map("confidence") // 0.00-100.00
+  insightCount      Int?     @default(0) @map("insight_count")
+  swarmId           String?  @map("swarm_id") // Link to Research Swarm execution
+
+  // Timestamps
   lastAnalyzedAt DateTime? @map("last_analyzed_at")
   createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  analyses CohortAnalysis[]
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competitors CohortCompetitor[]
+  contexts    CohortContext[]
+  insights    CohortInsight[]
 
+  @@index([userId, status])
+  @@index([createdAt])
   @@map("strategy_cohorts")
 }
 
-model CohortAnalysis {
+model CohortCompetitor {
+  id             String   @id @default(uuid())
+  cohortId       String   @map("cohort_id")
+  name           String
+  url            String?
+  domain         String?
+  industry       String?
+  employees      String?  // e.g., "500+", "1000-5000"
+  funding        String?  // e.g., "$340M", "Public"
+  logoUrl        String?  @map("logo_url")
+  status         String   @default("pending") // 'pending', 'analyzing', 'completed', 'failed'
+
+  // AI-enriched data
+  discoveredData Json?    @map("discovered_data") // Full AI-discovered company data
+
+  // Timestamps
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  cohort StrategyCohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+
+  @@index([cohortId])
+  @@map("cohort_competitors")
+}
+
+model CohortContext {
   id           String   @id @default(uuid())
   cohortId     String   @map("cohort_id")
-  analysisData Json     @map("analysis_data") // flexible schema for different analysis types
-  insights     String[] // array of insight strings
+  contextType  String   @map("context_type") // 'trial-abandoners', 'power-users', 'quick-starters', etc.
+  contextLabel String   @map("context_label") // Display label
+  percentage   Decimal? @db.Decimal(5, 2) // e.g., 34.00 for 34%
+
+  // Timestamps
   createdAt    DateTime @default(now()) @map("created_at")
 
   // Relations
   cohort StrategyCohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
 
-  @@map("cohort_analyses")
+  @@index([cohortId])
+  @@map("cohort_contexts")
+}
+
+model CohortInsight {
+  id              String   @id @default(uuid())
+  cohortId        String   @map("cohort_id")
+  title           String
+  content         String   @db.Text
+  confidence      String   // 'high', 'medium', 'low'
+  category        String   // 'pricing', 'features', 'market', 'retention', 'product', 'integrations'
+  sources         String[] // Array of source URLs and references
+  rank            Int      @default(0) // Display order (1-10 for finite introspect)
+
+  // Metadata
+  llmProvider     String?  @map("llm_provider") // Which LLM generated this insight
+  llmModel        String?  @map("llm_model")    // Which model version
+
+  // Timestamps
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  cohort StrategyCohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+
+  @@index([cohortId, rank])
+  @@index([category])
+  @@map("cohort_insights")
 }
 
 // ============================================================================
