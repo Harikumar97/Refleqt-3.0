@@ -38,40 +38,40 @@ ALTER TABLE public.obsession_scores ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view own profile"
   ON public.users
   FOR SELECT
-  USING (auth.uid() = id);
+  USING (auth.uid()::text = id);
 
 CREATE POLICY "Users can update own profile"
   ON public.users
   FOR UPDATE
-  USING (auth.uid() = id);
+  USING (auth.uid()::text = id);
 
 -- User Profiles: Can only access their own profile
 CREATE POLICY "Users can view own user profile"
   ON public.user_profiles
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can update own user profile"
   ON public.user_profiles
   FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can insert own user profile"
   ON public.user_profiles
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 -- Accounts: Managed by NextAuth, users can view their own accounts
 CREATE POLICY "Users can view own accounts"
   ON public.accounts
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 -- Sessions: Managed by NextAuth, users can view their own sessions
 CREATE POLICY "Users can view own sessions"
   ON public.sessions
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 -- Verification Tokens: Public (needed for email verification)
 CREATE POLICY "Anyone can access verification tokens"
@@ -86,22 +86,22 @@ CREATE POLICY "Anyone can access verification tokens"
 CREATE POLICY "Users can view own competitors"
   ON public.competitors
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can insert own competitors"
   ON public.competitors
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can update own competitors"
   ON public.competitors
   FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can delete own competitors"
   ON public.competitors
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 -- ============================================================================
 -- INTELLIGENCE FEED POLICIES
@@ -110,37 +110,37 @@ CREATE POLICY "Users can delete own competitors"
 CREATE POLICY "Users can view own intelligence sources"
   ON public.intelligence_sources
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can insert own intelligence sources"
   ON public.intelligence_sources
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can update own intelligence sources"
   ON public.intelligence_sources
   FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can delete own intelligence sources"
   ON public.intelligence_sources
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can view own intelligence items"
   ON public.intelligence_items
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can insert own intelligence items"
   ON public.intelligence_items
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can delete own intelligence items"
   ON public.intelligence_items
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 -- ============================================================================
 -- RESEARCH SWARMS POLICIES
@@ -149,57 +149,57 @@ CREATE POLICY "Users can delete own intelligence items"
 CREATE POLICY "Users can view own research goals"
   ON public.research_goals
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can insert own research goals"
   ON public.research_goals
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can update own research goals"
   ON public.research_goals
   FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can delete own research goals"
   ON public.research_goals
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can view own smart trackers"
   ON public.smart_trackers
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can insert own smart trackers"
   ON public.smart_trackers
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can update own smart trackers"
   ON public.smart_trackers
   FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can view own research swarms"
   ON public.research_swarms
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can insert own research swarms"
   ON public.research_swarms
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can update own research swarms"
   ON public.research_swarms
   FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can delete own research swarms"
   ON public.research_swarms
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 -- Swarm Findings: Accessible via parent swarm
 CREATE POLICY "Users can view findings from own swarms"
@@ -209,7 +209,7 @@ CREATE POLICY "Users can view findings from own swarms"
     EXISTS (
       SELECT 1 FROM public.research_swarms
       WHERE research_swarms.id = swarm_findings.swarm_id
-      AND research_swarms.user_id = auth.uid()
+      AND research_swarms.user_id = auth.uid()::text
     )
   );
 
@@ -220,7 +220,7 @@ CREATE POLICY "System can insert swarm findings"
     EXISTS (
       SELECT 1 FROM public.research_swarms
       WHERE research_swarms.id = swarm_findings.swarm_id
-      AND research_swarms.user_id = auth.uid()
+      AND research_swarms.user_id = auth.uid()::text
     )
   );
 
@@ -232,7 +232,7 @@ CREATE POLICY "Users can view recommendations from own swarms"
     EXISTS (
       SELECT 1 FROM public.research_swarms
       WHERE research_swarms.id = swarm_recommendations.swarm_id
-      AND research_swarms.user_id = auth.uid()
+      AND research_swarms.user_id = auth.uid()::text
     )
   );
 
@@ -243,7 +243,7 @@ CREATE POLICY "System can insert swarm recommendations"
     EXISTS (
       SELECT 1 FROM public.research_swarms
       WHERE research_swarms.id = swarm_recommendations.swarm_id
-      AND research_swarms.user_id = auth.uid()
+      AND research_swarms.user_id = auth.uid()::text
     )
   );
 
@@ -251,49 +251,49 @@ CREATE POLICY "System can insert swarm recommendations"
 CREATE POLICY "Users can view public and own swarm templates"
   ON public.swarm_templates
   FOR SELECT
-  USING (is_public = true OR auth.uid() = user_id);
+  USING (is_public = true OR auth.uid()::text = user_id);
 
 CREATE POLICY "Users can insert own swarm templates"
   ON public.swarm_templates
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can update own swarm templates"
   ON public.swarm_templates
   FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can delete own swarm templates"
   ON public.swarm_templates
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 -- Swarm Settings
 CREATE POLICY "Users can view own swarm settings"
   ON public.swarm_settings
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can insert own swarm settings"
   ON public.swarm_settings
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can update own swarm settings"
   ON public.swarm_settings
   FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 -- Swarm Analytics
 CREATE POLICY "Users can view own swarm analytics"
   ON public.swarm_analytics
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "System can insert swarm analytics"
   ON public.swarm_analytics
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 -- ============================================================================
 -- SYNTHESIZED INSIGHTS POLICIES
@@ -302,22 +302,22 @@ CREATE POLICY "System can insert swarm analytics"
 CREATE POLICY "Users can view own synthesized insights"
   ON public.synthesized_insights
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "System can insert synthesized insights"
   ON public.synthesized_insights
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can update own synthesized insights"
   ON public.synthesized_insights
   FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can delete own synthesized insights"
   ON public.synthesized_insights
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 -- ============================================================================
 -- KNOWLEDGE TRAVERSE POLICIES
@@ -326,22 +326,22 @@ CREATE POLICY "Users can delete own synthesized insights"
 CREATE POLICY "Users can view own knowledge nodes"
   ON public.knowledge_nodes
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can insert own knowledge nodes"
   ON public.knowledge_nodes
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can update own knowledge nodes"
   ON public.knowledge_nodes
   FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can delete own knowledge nodes"
   ON public.knowledge_nodes
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 -- ============================================================================
 -- STRATEGY COHORTS POLICIES
@@ -350,22 +350,22 @@ CREATE POLICY "Users can delete own knowledge nodes"
 CREATE POLICY "Users can view own strategy cohorts"
   ON public.strategy_cohorts
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can insert own strategy cohorts"
   ON public.strategy_cohorts
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can update own strategy cohorts"
   ON public.strategy_cohorts
   FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can delete own strategy cohorts"
   ON public.strategy_cohorts
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 -- Cohort Analyses: Accessible via parent cohort
 CREATE POLICY "Users can view analyses from own cohorts"
@@ -375,7 +375,7 @@ CREATE POLICY "Users can view analyses from own cohorts"
     EXISTS (
       SELECT 1 FROM public.strategy_cohorts
       WHERE strategy_cohorts.id = cohort_analyses.cohort_id
-      AND strategy_cohorts.user_id = auth.uid()
+      AND strategy_cohorts.user_id = auth.uid()::text
     )
   );
 
@@ -386,7 +386,7 @@ CREATE POLICY "System can insert cohort analyses"
     EXISTS (
       SELECT 1 FROM public.strategy_cohorts
       WHERE strategy_cohorts.id = cohort_analyses.cohort_id
-      AND strategy_cohorts.user_id = auth.uid()
+      AND strategy_cohorts.user_id = auth.uid()::text
     )
   );
 
@@ -397,22 +397,22 @@ CREATE POLICY "System can insert cohort analyses"
 CREATE POLICY "Users can view own psychographic segments"
   ON public.psychographic_segments
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can insert own psychographic segments"
   ON public.psychographic_segments
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can update own psychographic segments"
   ON public.psychographic_segments
   FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can delete own psychographic segments"
   ON public.psychographic_segments
   FOR DELETE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 -- Segment Insights: Accessible via parent segment
 CREATE POLICY "Users can view insights from own segments"
@@ -422,7 +422,7 @@ CREATE POLICY "Users can view insights from own segments"
     EXISTS (
       SELECT 1 FROM public.psychographic_segments
       WHERE psychographic_segments.id = segment_insights.segment_id
-      AND psychographic_segments.user_id = auth.uid()
+      AND psychographic_segments.user_id = auth.uid()::text
     )
   );
 
@@ -433,7 +433,7 @@ CREATE POLICY "System can insert segment insights"
     EXISTS (
       SELECT 1 FROM public.psychographic_segments
       WHERE psychographic_segments.id = segment_insights.segment_id
-      AND psychographic_segments.user_id = auth.uid()
+      AND psychographic_segments.user_id = auth.uid()::text
     )
   );
 
@@ -444,17 +444,17 @@ CREATE POLICY "System can insert segment insights"
 CREATE POLICY "Users can view own brewery outputs"
   ON public.brewery_outputs
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "System can insert brewery outputs"
   ON public.brewery_outputs
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Users can update own brewery outputs"
   ON public.brewery_outputs
   FOR UPDATE
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 -- ============================================================================
 -- OBSESSION SCORES POLICIES
@@ -463,9 +463,9 @@ CREATE POLICY "Users can update own brewery outputs"
 CREATE POLICY "Users can view own obsession scores"
   ON public.obsession_scores
   FOR SELECT
-  USING (auth.uid() = user_id);
+  USING (auth.uid()::text = user_id);
 
 CREATE POLICY "System can insert obsession scores"
   ON public.obsession_scores
   FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+  WITH CHECK (auth.uid()::text = user_id);
