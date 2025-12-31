@@ -46,3 +46,5 @@ prototype-backup
 pages/*.html
 
 /generated/prisma
+dev.db
+test-db-connection.js

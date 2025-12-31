@@ -3,12 +3,10 @@
 
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider   = "postgresql"
-  extensions = [pgvector(map: "vector", schema: "public")]
+  provider = "sqlite"
 }
 
 // ============================================================================
@@ -51,8 +49,8 @@ model UserProfile {
   userId            String   @unique @map("user_id")
   companyName       String   @map("company_name")
   industry          String
-  businessChallenge String?  @map("business_challenge") @db.Text
-  obsessionScore    Decimal  @default(0.0) @map("obsession_score") @db.Decimal(3, 1)
+  businessChallenge String?  @map("business_challenge")
+  obsessionScore    Decimal  @default(0.0) @map("obsession_score")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
@@ -69,12 +67,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String  @map("provider_account_id")
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -147,14 +145,14 @@ model IntelligenceItem {
   id             String                       @id @default(uuid())
   sourceId       String                       @map("source_id")
   userId         String                       @map("user_id")
-  title          String                       @db.VarChar(500)
-  content        String                       @db.Text
-  url            String?                      @db.VarChar(500)
+  title          String                      
+  content        String                      
+  url            String?                     
   author         String?
   publishedAt    DateTime?                    @map("published_at")
   fetchedAt      DateTime                     @default(now()) @map("fetched_at")
-  relevanceScore Decimal?                     @map("relevance_score") @db.Decimal(3, 2)
-  embedding      Unsupported("vector(1536)")? // pgvector for semantic search
+  relevanceScore Decimal?                     @map("relevance_score")
+  // embedding      Unsupported("vector(1536)")? // pgvector for semantic search - disabled for SQLite
   metadata       Json? // flexible storage for source-specific data
   createdAt      DateTime                     @default(now()) @map("created_at")
 
@@ -174,8 +172,8 @@ model IntelligenceItem {
 model ResearchGoal {
   id              String    @id @default(uuid())
   userId          String    @map("user_id")
-  goalTitle       String    @map("goal_title") @db.VarChar(500)
-  goalQuery       String    @map("goal_query") @db.Text
+  goalTitle       String    @map("goal_title")
+  goalQuery       String    @map("goal_query")
   goalType        String    @map("goal_type") // 'competitive', 'market', 'customer', 'industry'
   mcpChainConfig  Json?     @map("mcp_chain_config") // MCP chain configuration
   isActive        Boolean   @default(true) @map("is_active")
@@ -216,7 +214,7 @@ model ResearchSwarm {
   id               String    @id @default(uuid())
   goalId           String?   @map("goal_id") // nullable for ad-hoc queries
   userId           String    @map("user_id")
-  query            String    @db.Text
+  query            String   
   swarmType        String    @map("swarm_type") // 'competitive', 'market', 'customer', 'product'
   swarmSize        String    @default("small") @map("swarm_size") // 'small' (3 agents), 'large' (8 agents)
   status           String    @default("pending") // 'pending', 'running', 'processing', 'completed', 'failed'
@@ -248,9 +246,9 @@ model SwarmFinding {
   swarmId         String   @map("swarm_id")
   agentId         String?  @map("agent_id") // which agent found this
   findingType     String?  @map("finding_type") // 'insight', 'trend', 'opportunity', 'threat'
-  title           String?  @db.VarChar(500)
-  content         String   @db.Text
-  confidenceScore Decimal? @map("confidence_score") @db.Decimal(3, 2)
+  title           String? 
+  content         String  
+  confidenceScore Decimal? @map("confidence_score")
   sources         Json? // array of source references
   createdAt       DateTime @default(now()) @map("created_at")
 
@@ -264,8 +262,8 @@ model SwarmFinding {
 model SwarmRecommendation {
   id            String   @id @default(uuid())
   swarmId       String   @map("swarm_id")
-  action        String   @db.Text
-  impact        String   @db.Text
+  action        String  
+  impact        String  
   priority      String // 'HIGH', 'MEDIUM', 'LOW'
   timeline      String
   effort        String
@@ -284,9 +282,9 @@ model SwarmTemplate {
   id          String   @id @default(uuid())
   userId      String?  @map("user_id") // null = system template
   title       String
-  description String   @db.Text
+  description String  
   icon        String
-  query       String   @db.Text
+  query       String  
   swarmType   String   @map("swarm_type") // 'competitive', 'market', 'customer', 'product'
   isPublic    Boolean  @default(false) @map("is_public")
   usageCount  Int      @default(0) @map("usage_count")
@@ -307,9 +305,9 @@ model SwarmSettings {
   researchDepth    String   @default("STANDARD") @map("research_depth") // 'STANDARD', 'DEEP', 'COMPREHENSIVE'
   analysisSpeed    String   @default("BALANCED") @map("analysis_speed") // 'FAST', 'BALANCED', 'THOROUGH'
   resultFormat     String   @default("EXECUTIVE") @map("result_format") // 'EXECUTIVE', 'DETAILED', 'ACTION_ORIENTED'
-  dataSources      String[] @map("data_sources") // Array of enabled sources
+  dataSources      String @map("data_sources") // Array of enabled sources
   notifications    Json // Notification preferences
-  focusAreas       String[] @map("focus_areas") // Industry focus areas
+  focusAreas       String @map("focus_areas") // Industry focus areas
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -343,16 +341,16 @@ model SynthesizedInsight {
   id                String                       @id @default(uuid())
   swarmId           String                       @map("swarm_id")
   userId            String                       @map("user_id")
-  title             String                       @db.VarChar(500)
-  content           String                       @db.Text
+  title             String                      
+  content           String                      
   hierarchyLevel    String                       @map("hierarchy_level") // 'strategic', 'tactical', 'operational'
-  priorityScore     Decimal                      @map("priority_score") @db.Decimal(3, 2) // 0.0-1.0
-  relevanceScore    Decimal                      @map("relevance_score") @db.Decimal(3, 2) // 0.0-1.0
+  priorityScore     Decimal                      @map("priority_score") // 0.0-1.0
+  relevanceScore    Decimal                      @map("relevance_score") // 0.0-1.0
   isActionable      Boolean                      @default(false) @map("is_actionable")
-  actionItems       String[] // max 5 action items
-  sourceFindingIds  String[]                     @map("source_finding_ids") // references to SwarmFindings
-  embedding         Unsupported("vector(1536)")? // for Knowledge Traverse
-  psychographicTags String[]                     @map("psychographic_tags")
+  actionItems       String // max 5 action items
+  sourceFindingIds  String                     @map("source_finding_ids") // references to SwarmFindings
+  // embedding         Unsupported("vector(1536)")? // for Knowledge Traverse - disabled for SQLite
+  psychographicTags String                     @map("psychographic_tags")
   displayPosition   Int?                         @map("display_position") // 1-10 for finite introspect
   dismissedAt       DateTime?                    @map("dismissed_at")
   createdAt         DateTime                     @default(now()) @map("created_at")
@@ -371,12 +369,12 @@ model KnowledgeNode {
   id             String   @id @default(uuid())
   userId         String   @map("user_id")
   parentId       String?  @map("parent_id") // for tree structure
-  nodeTitle      String   @map("node_title") @db.VarChar(500)
-  nodeContent    String?  @map("node_content") @db.Text
+  nodeTitle      String   @map("node_title")
+  nodeContent    String?  @map("node_content")
   hierarchyLevel String   @map("hierarchy_level") // 'strategic', 'tactical', 'operational'
   depth          Int      @default(0) // tree depth (0 = root)
-  insightIds     String[] @map("insight_ids") // linked insights
-  relevanceScore Decimal  @map("relevance_score") @db.Decimal(3, 2)
+  insightIds     String @map("insight_ids") // linked insights
+  relevanceScore Decimal  @map("relevance_score")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -398,8 +396,8 @@ model StrategyCohort {
   id             String    @id @default(uuid())
   userId         String    @map("user_id")
   name           String
-  description    String?   @db.Text
-  competitorIds  String[]  @map("competitor_ids") // array of competitor IDs
+  description    String?  
+  competitorIds  String  @map("competitor_ids") // array of competitor IDs
   analysisType   String?   @map("analysis_type") // 'pricing', 'features', 'content', 'social'
   lastAnalyzedAt DateTime? @map("last_analyzed_at")
   createdAt      DateTime  @default(now()) @map("created_at")
@@ -415,7 +413,7 @@ model CohortAnalysis {
   id           String   @id @default(uuid())
   cohortId     String   @map("cohort_id")
   analysisData Json     @map("analysis_data") // flexible schema for different analysis types
-  insights     String[] // array of insight strings
+  insights     String // array of insight strings
   createdAt    DateTime @default(now()) @map("created_at")
 
   // Relations
@@ -432,7 +430,7 @@ model PsychographicSegment {
   id              String   @id @default(uuid())
   userId          String   @map("user_id")
   segmentName     String   @map("segment_name")
-  segmentTagline  String?  @map("segment_tagline") @db.VarChar(500)
+  segmentTagline  String?  @map("segment_tagline")
   characteristics Json? // behavioral traits, pain points, motivations
   funnelStage     String?  @map("funnel_stage") // 'awareness', 'consideration', 'decision', 'retention'
   sizeEstimate    Int?     @map("size_estimate")
@@ -449,8 +447,8 @@ model SegmentInsight {
   id              String   @id @default(uuid())
   segmentId       String   @map("segment_id")
   insightType     String?  @map("insight_type") // 'pain_point', 'motivation', 'objection', 'trigger'
-  content         String   @db.Text
-  confidenceScore Decimal? @map("confidence_score") @db.Decimal(3, 2)
+  content         String  
+  confidenceScore Decimal? @map("confidence_score")
   createdAt       DateTime @default(now()) @map("created_at")
 
   // Relations
@@ -467,9 +465,9 @@ model BreweryOutput {
   id           String    @id @default(uuid())
   userId       String    @map("user_id")
   outputType   String    @map("output_type") // 'newsletter', 'brief', 'alert'
-  title        String    @db.VarChar(500)
-  content      String    @db.Text
-  sourceItems  String[]  @map("source_items") // array of intelligence_item IDs
+  title        String   
+  content      String   
+  sourceItems  String  @map("source_items") // array of intelligence_item IDs
   status       String    @default("brewing") // 'brewing', 'ready', 'delivered'
   scheduledFor DateTime? @map("scheduled_for")
   deliveredAt  DateTime? @map("delivered_at")
@@ -488,7 +486,7 @@ model BreweryOutput {
 model ObsessionScore {
   id           String   @id @default(uuid())
   userId       String   @map("user_id")
-  score        Decimal  @db.Decimal(3, 1) // 0.0 to 10.0
+  score        Decimal  // 0.0 to 10.0
   calculatedAt DateTime @default(now()) @map("calculated_at")
   factors      Json? // breakdown of score components
 
