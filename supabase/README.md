@@ -1,42 +1,53 @@
 # Supabase Setup
 
-This directory contains SQL scripts for setting up Row Level Security (RLS) policies in Supabase.
+This directory contains SQL scripts for setting up your PostgreSQL database in Supabase.
 
 ## Files
 
-- `enable-rls.sql` - Enables RLS and creates security policies for all tables
+- `schema.sql` - Creates all database tables (run this FIRST)
+- `enable-rls.sql` - Enables RLS and creates security policies for all tables (run this SECOND)
 
-## How to Apply RLS Policies
+## ⚠️ Important: Run in Order!
 
-### Option 1: Supabase Dashboard (Recommended)
+**You must run these files in this exact order:**
+
+1. **First**: `schema.sql` - Creates all tables
+2. **Second**: `enable-rls.sql` - Adds security policies
+
+## Step 1: Create Database Schema
+
+### Supabase Dashboard (Recommended)
 
 1. Go to your Supabase project dashboard: https://supabase.com/dashboard
 2. Navigate to **SQL Editor** in the left sidebar
 3. Click **New Query**
-4. Copy the entire contents of `enable-rls.sql`
+4. Copy the entire contents of `schema.sql`
 5. Paste into the SQL editor
 6. Click **Run** to execute
 
-### Option 2: Supabase CLI
+### Command Line (Alternative)
 
 ```bash
-# Install Supabase CLI if not already installed
-npm install -g supabase
-
-# Link to your project
-supabase link --project-ref your-project-ref
-
-# Run the migration
-supabase db push
+psql "postgresql://postgres:your-password@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres"
+\i supabase/schema.sql
 ```
 
-### Option 3: psql (Command Line)
+## Step 2: Enable RLS Policies
+
+**Only run this AFTER Step 1 completes successfully!**
+
+### Supabase Dashboard (Recommended)
+
+1. In the same **SQL Editor**
+2. Click **New Query**
+3. Copy the entire contents of `enable-rls.sql`
+4. Paste into the SQL editor
+5. Click **Run** to execute
+
+### Command Line (Alternative)
 
 ```bash
-# Connect to your Supabase database
 psql "postgresql://postgres:your-password@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres"
-
-# Run the SQL file
 \i supabase/enable-rls.sql
 ```
 
