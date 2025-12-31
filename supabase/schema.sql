@@ -372,17 +372,23 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+-- Drop existing triggers if they exist, then create them
+DROP TRIGGER IF EXISTS update_users_updated_at ON public.users;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON public.user_profiles;
 CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON public.user_profiles
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_research_goals_updated_at ON public.research_goals;
 CREATE TRIGGER update_research_goals_updated_at BEFORE UPDATE ON public.research_goals
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_swarm_settings_updated_at ON public.swarm_settings;
 CREATE TRIGGER update_swarm_settings_updated_at BEFORE UPDATE ON public.swarm_settings
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_knowledge_nodes_updated_at ON public.knowledge_nodes;
 CREATE TRIGGER update_knowledge_nodes_updated_at BEFORE UPDATE ON public.knowledge_nodes
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
