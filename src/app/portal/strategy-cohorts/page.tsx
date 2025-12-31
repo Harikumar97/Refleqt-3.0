@@ -21,7 +21,11 @@ import AnalysisConfig, {
 import ProcessingModal from "@/components/strategy-cohorts/ProcessingModal";
 import InsightsGrid from "@/components/strategy-cohorts/InsightsGrid";
 import CompetitiveChart from "@/components/strategy-cohorts/CompetitiveChart";
-import type { DiscoveredCompetitor } from "@/lib/strategy-cohorts/types";
+import CohortActionsMenu from "@/components/strategy-cohorts/CohortActionsMenu";
+import type {
+  DiscoveredCompetitor,
+  CohortInsight,
+} from "@/lib/strategy-cohorts/types";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -123,6 +127,55 @@ function StrategyCohortsContent() {
       includeTech: false,
       includeSentiment: true,
     });
+  };
+
+  const handleRefineInsights = (_newInsights: CohortInsight[]) => {
+    // Insights will be updated via React Query cache invalidation
+    // The component will re-render with new data
+  };
+
+  const handleDuplicateCohort = async () => {
+    if (!cohort) return;
+
+    try {
+      await createCohort.mutateAsync({
+        name: `${cohort.name} (Copy)`,
+        ...(cohort.description && { description: cohort.description }),
+        analysisType: cohort.analysisType,
+      });
+
+      // Copy competitors
+      if (cohort.competitors) {
+        for (const competitor of cohort.competitors) {
+          await addCompetitor.mutateAsync({
+            name: competitor.name,
+            ...(competitor.url && { url: competitor.url }),
+          });
+        }
+      }
+
+      alert("Cohort duplicated successfully!");
+    } catch (error) {
+      console.error("Failed to duplicate cohort:", error);
+      alert("Failed to duplicate cohort. Please try again.");
+    }
+  };
+
+  const handleDeleteCohort = async () => {
+    if (!currentCohortId) return;
+
+    try {
+      const response = await fetch(`/api/strategy-cohorts/${currentCohortId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        handleStartNew();
+      }
+    } catch (error) {
+      console.error("Failed to delete cohort:", error);
+      alert("Failed to delete cohort. Please try again.");
+    }
   };
 
   return (
@@ -367,6 +420,16 @@ function StrategyCohortsContent() {
                 </div>
               </div>
               <div className="action-buttons">
+                {currentCohortId && cohort && (
+                  <CohortActionsMenu
+                    cohortId={currentCohortId}
+                    cohortName={cohort.name}
+                    insights={cohort.insights || []}
+                    onRefine={handleRefineInsights}
+                    onDuplicate={handleDuplicateCohort}
+                    onDelete={handleDeleteCohort}
+                  />
+                )}
                 <button className="btn btn-secondary" onClick={handleStartNew}>
                   <span>➕</span>
                   <span>New Analysis</span>
