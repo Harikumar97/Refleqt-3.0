@@ -25,6 +25,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { useSession } from "next-auth/react";
 
 // ============================================================================
 // Types (aligned with Prisma schema)
@@ -67,18 +68,25 @@ const UserContext = createContext<UserContextValue | null>(null);
 // ============================================================================
 
 export function UserProvider({ children }: { children: ReactNode }) {
+  const { data: session, status } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const loading = status === "loading";
 
   /**
    * Fetch user profile from backend
-   * Called on mount and manually via refetch()
+   * Called when session is available
    */
   const fetchUserProfile = useCallback(async () => {
+    if (!session?.user) {
+      setUser(null);
+      setProfile(null);
+      return;
+    }
+
     try {
-      setLoading(true);
       setError(null);
 
       const response = await fetch("/api/user/profile");
@@ -99,31 +107,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const message = err instanceof Error ? err.message : "Unknown error";
       setError(message);
       console.error("[UserContext] Failed to fetch user profile:", err);
-
-      // Set fallback data for development
-      // TODO: Remove this fallback in production
-      if (process.env.NODE_ENV === "development") {
-        console.warn("[UserContext] Using fallback data for development");
-        setUser({
-          id: "00000000-0000-0000-0000-000000000001",
-          email: "user@example.com",
-          name: "Development User",
-          createdAt: new Date().toISOString(),
-        });
-        setProfile({
-          id: "00000000-0000-0000-0000-000000000001",
-          companyName: "My Company",
-          industry: "Technology",
-          businessChallenge: null,
-          obsessionScore: 8.4,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-      }
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [session]);
 
   /**
    * Update user profile
@@ -170,10 +155,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     [profile]
   );
 
-  // Fetch on mount
+  // Fetch profile when session becomes available
   useEffect(() => {
-    fetchUserProfile();
-  }, [fetchUserProfile]);
+    if (session?.user) {
+      fetchUserProfile();
+    }
+  }, [session, fetchUserProfile]);
 
   const value: UserContextValue = {
     user,
