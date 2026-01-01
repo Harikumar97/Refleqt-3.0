@@ -1,43 +1,29 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import './brewery.css';
-
-interface BreweryItem {
-  id: string;
-  title: string;
-}
-
-interface WriterRequestModalProps {
-  selectedItems: BreweryItem[];
-  onClose: () => void;
-  onSubmit: (request: WriterRequest) => void;
-}
-
-interface WriterRequest {
-  breweryItemIds: string[];
-  platform: string;
-  contentType: string;
-  deadline?: string;
-  brief?: string;
-}
+import { useState } from "react";
+import type {
+  WriterRequestModalProps,
+  Platform,
+  ContentType,
+} from "@/lib/types";
+import "./brewery.css";
 
 export function WriterRequestModal({
   selectedItems,
   onClose,
   onSubmit,
 }: WriterRequestModalProps) {
-  const [platform, setPlatform] = useState('linkedin');
-  const [contentType, setContentType] = useState('article');
-  const [deadline, setDeadline] = useState('');
-  const [brief, setBrief] = useState('');
+  const [platform, setPlatform] = useState<Platform>("linkedin");
+  const [contentType, setContentType] = useState<ContentType>("article");
+  const [deadline, setDeadline] = useState("");
+  const [brief, setBrief] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (selectedItems.length === 0) {
-      alert('Please select at least one item');
+      alert("Please select at least one item");
       return;
     }
 
@@ -75,7 +61,7 @@ export function WriterRequestModal({
               id="platform"
               className="form-select"
               value={platform}
-              onChange={(e) => setPlatform(e.target.value)}
+              onChange={(e) => setPlatform(e.target.value as Platform)}
               required
             >
               <option value="linkedin">LinkedIn</option>
@@ -95,7 +81,7 @@ export function WriterRequestModal({
               id="contentType"
               className="form-select"
               value={contentType}
-              onChange={(e) => setContentType(e.target.value)}
+              onChange={(e) => setContentType(e.target.value as ContentType)}
               required
             >
               <option value="article">Article / Long-form</option>
@@ -162,7 +148,7 @@ export function WriterRequestModal({
               className="btn btn-primary"
               disabled={isSubmitting || selectedItems.length === 0}
             >
-              {isSubmitting ? 'Creating Request...' : 'Create Request'}
+              {isSubmitting ? "Creating Request..." : "Create Request"}
             </button>
           </div>
         </form>

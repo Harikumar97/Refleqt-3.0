@@ -1,30 +1,16 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { BreweryCard } from '@/components/brewery/BreweryCard';
-import { WriterRequestModal } from '@/components/brewery/WriterRequestModal';
-import '@/components/brewery/brewery.css';
-
-interface BreweryItem {
-  id: string;
-  title: string;
-  content: string;
-  excerpt?: string | null;
-  sourceType: string;
-  sourceId: string;
-  sourceName?: string | null;
-  category?: string | null;
-  confidence?: string | null;
-  tags: string[];
-  writerStatus: string;
-  savedAt: string;
-}
+import { useState, useEffect } from "react";
+import type { BreweryItem } from "@/lib/types";
+import { BreweryCard } from "@/components/brewery/BreweryCard";
+import { WriterRequestModal } from "@/components/brewery/WriterRequestModal";
+import "@/components/brewery/brewery.css";
 
 export default function Brewery(): React.ReactElement {
   const [items, setItems] = useState<BreweryItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<BreweryItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [activeFilter, setActiveFilter] = useState<string>("all");
   const [showWriterModal, setShowWriterModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -38,11 +24,11 @@ export default function Brewery(): React.ReactElement {
 
   const fetchBreweryItems = async () => {
     try {
-      const response = await fetch('/api/brewery');
+      const response = await fetch("/api/brewery");
       const data = await response.json();
       setItems(data.items || []);
     } catch (error) {
-      console.error('Failed to fetch brewery items:', error);
+      console.error("Failed to fetch brewery items:", error);
     } finally {
       setIsLoading(false);
     }
@@ -52,18 +38,18 @@ export default function Brewery(): React.ReactElement {
     let filtered = items;
 
     switch (activeFilter) {
-      case 'research-swarm':
-      case 'strategy-cohort':
-      case 'intelligence-feed':
+      case "research-swarm":
+      case "strategy-cohort":
+      case "intelligence-feed":
         filtered = items.filter((item) => item.sourceType === activeFilter);
         break;
-      case 'saved':
-      case 'request-created':
-      case 'in-progress':
-      case 'completed':
+      case "saved":
+      case "request-created":
+      case "in-progress":
+      case "completed":
         filtered = items.filter((item) => item.writerStatus === activeFilter);
         break;
-      case 'all':
+      case "all":
       default:
         filtered = items;
     }
@@ -74,7 +60,7 @@ export default function Brewery(): React.ReactElement {
   const handleDelete = async (id: string) => {
     try {
       const response = await fetch(`/api/brewery/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
 
       if (response.ok) {
@@ -85,11 +71,11 @@ export default function Brewery(): React.ReactElement {
           return newSet;
         });
       } else {
-        alert('Failed to delete item');
+        alert("Failed to delete item");
       }
     } catch (error) {
-      console.error('Failed to delete item:', error);
-      alert('Failed to delete item');
+      console.error("Failed to delete item:", error);
+      alert("Failed to delete item");
     }
   };
 
@@ -115,25 +101,25 @@ export default function Brewery(): React.ReactElement {
 
   const handleWriterRequest = async (request: any) => {
     try {
-      const response = await fetch('/api/brewery/create-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/brewery/create-token", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),
       });
 
       if (response.ok) {
         const data = await response.json();
-        alert(data.message || 'Writer request created successfully!');
+        alert(data.message || "Writer request created successfully!");
         setShowWriterModal(false);
         setSelectedIds(new Set());
         fetchBreweryItems(); // Refresh to get updated status
       } else {
         const error = await response.json();
-        alert(error.error || 'Failed to create writer request');
+        alert(error.error || "Failed to create writer request");
       }
     } catch (error) {
-      console.error('Failed to create writer request:', error);
-      alert('Failed to create writer request');
+      console.error("Failed to create writer request:", error);
+      alert("Failed to create writer request");
     }
   };
 
@@ -141,12 +127,11 @@ export default function Brewery(): React.ReactElement {
 
   const stats = {
     total: items.length,
-    saved: items.filter((i) => i.writerStatus === 'saved').length,
-    inProgress:
-      items.filter((i) =>
-        ['request-created', 'assigned', 'in-progress'].includes(i.writerStatus)
-      ).length,
-    completed: items.filter((i) => i.writerStatus === 'completed').length,
+    saved: items.filter((i) => i.writerStatus === "saved").length,
+    inProgress: items.filter((i) =>
+      ["request-created", "assigned", "in-progress"].includes(i.writerStatus)
+    ).length,
+    completed: items.filter((i) => i.writerStatus === "completed").length,
   };
 
   if (isLoading) {
@@ -191,26 +176,26 @@ export default function Brewery(): React.ReactElement {
       <div className="brewery-controls">
         <div className="filter-tabs">
           <button
-            className={`filter-tab ${activeFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('all')}
+            className={`filter-tab ${activeFilter === "all" ? "active" : ""}`}
+            onClick={() => setActiveFilter("all")}
           >
             All
           </button>
           <button
-            className={`filter-tab ${activeFilter === 'research-swarm' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('research-swarm')}
+            className={`filter-tab ${activeFilter === "research-swarm" ? "active" : ""}`}
+            onClick={() => setActiveFilter("research-swarm")}
           >
             Research Swarms
           </button>
           <button
-            className={`filter-tab ${activeFilter === 'strategy-cohort' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('strategy-cohort')}
+            className={`filter-tab ${activeFilter === "strategy-cohort" ? "active" : ""}`}
+            onClick={() => setActiveFilter("strategy-cohort")}
           >
             Strategy Cohorts
           </button>
           <button
-            className={`filter-tab ${activeFilter === 'intelligence-feed' ? 'active' : ''}`}
-            onClick={() => setActiveFilter('intelligence-feed')}
+            className={`filter-tab ${activeFilter === "intelligence-feed" ? "active" : ""}`}
+            onClick={() => setActiveFilter("intelligence-feed")}
           >
             Intelligence Feed
           </button>
@@ -220,8 +205,8 @@ export default function Brewery(): React.ReactElement {
           {filteredItems.length > 0 && (
             <button className="btn btn-secondary" onClick={handleSelectAll}>
               {selectedIds.size === filteredItems.length
-                ? 'Deselect All'
-                : 'Select All'}
+                ? "Deselect All"
+                : "Select All"}
             </button>
           )}
           <button
@@ -239,13 +224,13 @@ export default function Brewery(): React.ReactElement {
           <div className="empty-icon">🍺</div>
           <div className="empty-title">
             {items.length === 0
-              ? 'Your Brewery is Empty'
-              : 'No items match this filter'}
+              ? "Your Brewery is Empty"
+              : "No items match this filter"}
           </div>
           <p className="empty-subtitle">
             {items.length === 0
-              ? 'Start saving insights from Research Swarms, Strategy Cohorts, or Intelligence Feed'
-              : 'Try a different filter to see your saved insights'}
+              ? "Start saving insights from Research Swarms, Strategy Cohorts, or Intelligence Feed"
+              : "Try a different filter to see your saved insights"}
           </p>
         </div>
       ) : (
