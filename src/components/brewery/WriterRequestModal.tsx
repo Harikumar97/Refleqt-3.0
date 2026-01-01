@@ -48,8 +48,8 @@ export function WriterRequestModal({
         breweryItemIds: selectedItems.map((item) => item.id),
         platform,
         contentType,
-        deadline: deadline || undefined,
-        brief: brief || undefined,
+        ...(deadline && { deadline }),
+        ...(brief && { brief }),
       });
     } finally {
       setIsSubmitting(false);
