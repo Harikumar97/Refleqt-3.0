@@ -101,6 +101,40 @@ export function FiniteIntrospectDisplay({
     }
   }
 
+  async function saveToBrewery(insight: SynthesizedInsight) {
+    try {
+      const response = await fetch("/api/brewery", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: insight.title,
+          content: insight.content,
+          sourceType: "research-swarm",
+          sourceId: insight.swarmId,
+          sourceName: "Research Swarm Insight",
+          category: insight.hierarchyLevel,
+          confidence:
+            insight.priorityScore >= 0.8
+              ? "high"
+              : insight.priorityScore >= 0.5
+                ? "medium"
+                : "low",
+        }),
+      });
+
+      if (response.ok) {
+        alert("✅ Saved to Brewery! Visit The Brewery to create content.");
+      } else if (response.status === 409) {
+        alert("ℹ️ This insight is already in your Brewery");
+      } else {
+        throw new Error("Failed to save to brewery");
+      }
+    } catch (error) {
+      console.error("Failed to save to brewery:", error);
+      alert("Failed to save to Brewery");
+    }
+  }
+
   function toggleExpanded(insightId: string) {
     setExpandedInsightId(expandedInsightId === insightId ? null : insightId);
   }
@@ -375,16 +409,28 @@ export function FiniteIntrospectDisplay({
                 <span className="insight-timestamp">
                   {new Date(insight.createdAt).toLocaleString()}
                 </span>
-                <button
-                  className="dismiss-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDismiss(insight.id);
-                  }}
-                  disabled={isDismissing}
-                >
-                  {isDismissing ? "..." : "Dismiss"}
-                </button>
+                <div className="footer-actions">
+                  <button
+                    className="brewery-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      saveToBrewery(insight);
+                    }}
+                  >
+                    <span className="brewery-icon">🍺</span>
+                    Save to Brewery
+                  </button>
+                  <button
+                    className="dismiss-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDismiss(insight.id);
+                    }}
+                    disabled={isDismissing}
+                  >
+                    {isDismissing ? "..." : "Dismiss"}
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -637,6 +683,35 @@ export function FiniteIntrospectDisplay({
         .insight-timestamp {
           font-size: 11px;
           color: #9ca3af;
+        }
+
+        .footer-actions {
+          display: flex;
+          gap: 8px;
+        }
+
+        .brewery-button {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 14px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .brewery-button:hover {
+          transform: scale(1.05);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .brewery-icon {
+          font-size: 14px;
         }
 
         .dismiss-button {
