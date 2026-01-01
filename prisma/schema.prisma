@@ -37,6 +37,7 @@ model User {
   psychographicSegs   PsychographicSegment[]
   breweryOutputs      BreweryOutput[]
   breweryItems        BreweryItem[]
+  writerRequests      WriterRequest[]
   obsessionScores     ObsessionScore[]
   swarmTemplates      SwarmTemplate[]
   swarmSettings       SwarmSettings?
@@ -591,6 +592,40 @@ model BreweryItem {
   @@index([sourceType, sourceId])
   @@index([writerStatus])
   @@map("brewery_items")
+}
+
+model WriterRequest {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+
+  // Request details
+  token           String    @unique // Unique token for writer platform
+  breweryItemIds  String[]  @map("brewery_item_ids") // Array of BreweryItem IDs
+  platform        String    // 'linkedin', 'twitter', 'instagram', 'youtube', 'blog', 'facebook'
+  contentType     String    @map("content_type") // 'article', 'thread', 'post', 'carousel', 'video-script', 'infographic'
+  deadline        DateTime? // Optional deadline for content delivery
+  brief           String?   @db.Text // Additional instructions/requirements
+
+  // Status tracking
+  status          String    @default("pending") // 'pending', 'assigned', 'in-progress', 'completed', 'cancelled'
+  assignedWriterId String?  @map("assigned_writer_id") // ID from writer platform
+  assignedAt      DateTime? @map("assigned_at")
+  completedAt     DateTime? @map("completed_at")
+
+  // Deliverables
+  deliverables    Json?     // Final content and assets when completed
+
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([token])
+  @@map("writer_requests")
 }
 
 // ============================================================================

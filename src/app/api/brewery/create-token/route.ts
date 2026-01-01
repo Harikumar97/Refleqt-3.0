@@ -59,20 +59,19 @@ export async function POST(request: NextRequest) {
     // Generate unique token for writer platform
     const token = `token_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // TODO: Send to external Writer Platform API
-    // For now, we'll just create a mock request record
-    const writerRequest = {
-      id: `req_${Date.now()}`,
-      token,
-      userId,
-      breweryItemIds,
-      platform,
-      contentType,
-      deadline: deadline ? new Date(deadline) : null,
-      brief: brief || "",
-      status: "pending",
-      createdAt: new Date(),
-    };
+    // Create writer request in database
+    const writerRequest = await prisma.writerRequest.create({
+      data: {
+        userId,
+        token,
+        breweryItemIds,
+        platform,
+        contentType,
+        ...(deadline && { deadline: new Date(deadline) }),
+        ...(brief && { brief }),
+        status: "pending",
+      },
+    });
 
     // Update brewery items with request status
     await prisma.breweryItem.updateMany({
@@ -85,7 +84,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // TODO: In production, send to Writer Platform API:
+    // TODO: In production, send to external Writer Platform API:
     // await fetch('https://writers.refleqt.com/api/requests', {
     //   method: 'POST',
     //   headers: { 'Authorization': `Bearer ${WRITER_PLATFORM_API_KEY}` },
@@ -99,8 +98,6 @@ export async function POST(request: NextRequest) {
     //     brief,
     //   }),
     // });
-
-    console.log("Writer request created:", writerRequest);
 
     return NextResponse.json({
       success: true,
