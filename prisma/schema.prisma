@@ -36,6 +36,7 @@ model User {
   strategyCohorts     StrategyCohort[]
   psychographicSegs   PsychographicSegment[]
   breweryOutputs      BreweryOutput[]
+  breweryItems        BreweryItem[]
   obsessionScores     ObsessionScore[]
   swarmTemplates      SwarmTemplate[]
   swarmSettings       SwarmSettings?
@@ -554,6 +555,42 @@ model BreweryOutput {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("brewery_outputs")
+}
+
+model BreweryItem {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+
+  // Content
+  title           String
+  content         String    @db.Text
+  excerpt         String?   @db.Text // Short summary for card display
+
+  // Source tracking
+  sourceType      String    @map("source_type") // 'research-swarm', 'strategy-cohort', 'intelligence-feed'
+  sourceId        String    @map("source_id") // ID of the source item
+  sourceName      String?   @map("source_name") // Human-readable source name
+
+  // Metadata
+  category        String?   // Category from source (e.g., 'Strategic Insights', 'Market Trends')
+  confidence      String?   // Confidence level if applicable ('high', 'medium', 'low')
+  tags            String[]  @default([]) // User-added tags for organization
+
+  // Writer request tracking
+  writerStatus    String    @default("saved") @map("writer_status") // 'saved', 'request-created', 'assigned', 'in-progress', 'completed'
+  writerRequestId String?   @map("writer_request_id") // ID of writer request if created
+
+  // Timestamps
+  savedAt         DateTime  @default(now()) @map("saved_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, savedAt])
+  @@index([sourceType, sourceId])
+  @@index([writerStatus])
+  @@map("brewery_items")
 }
 
 // ============================================================================

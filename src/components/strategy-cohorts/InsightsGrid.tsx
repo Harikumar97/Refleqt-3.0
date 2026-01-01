@@ -8,6 +8,35 @@
 import { useState } from "react";
 import type { CohortInsight } from "@/lib/strategy-cohorts/types";
 
+const saveToBrewery = async (insight: CohortInsight, cohortName?: string) => {
+  try {
+    const response = await fetch("/api/brewery", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: insight.title,
+        content: insight.content,
+        sourceType: "strategy-cohort",
+        sourceId: insight.id,
+        sourceName: cohortName || "Strategy Cohort Analysis",
+        category: insight.category,
+        confidence: insight.confidence,
+      }),
+    });
+
+    if (response.ok) {
+      alert("✅ Saved to Brewery! Visit The Brewery to create content.");
+    } else if (response.status === 409) {
+      alert("ℹ️ This insight is already in your Brewery");
+    } else {
+      alert("Failed to save to Brewery");
+    }
+  } catch (error) {
+    console.error("Failed to save to brewery:", error);
+    alert("Failed to save to Brewery");
+  }
+};
+
 interface InsightsGridProps {
   insights: CohortInsight[];
   cohortName?: string;
@@ -288,6 +317,27 @@ export default function InsightsGrid({
         .source-link:hover {
           text-decoration: underline;
         }
+
+        .save-brewery-btn {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 12px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          border: none;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .save-brewery-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
       `}</style>
 
       <div className="grid-header">
@@ -396,6 +446,14 @@ export default function InsightsGrid({
                     <span>{insight.sources.length} sources</span>
                   </div>
                 )}
+                <button
+                  className="save-brewery-btn"
+                  onClick={() => saveToBrewery(insight, cohortName)}
+                  title="Save to Brewery"
+                >
+                  <span>🍺</span>
+                  <span>Save to Brewery</span>
+                </button>
               </div>
 
               {insight.sources && insight.sources.length > 0 && (
