@@ -19,13 +19,13 @@ interface UpdateInsightRequest {
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { cohortId: string; insightId: string } }
+  { params }: { params: Promise<{ cohortId: string; insightId: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id";
 
-    const { cohortId, insightId } = params;
+    const { cohortId, insightId } = await params;
     const body: UpdateInsightRequest = await request.json();
 
     // Verify cohort ownership
@@ -83,13 +83,13 @@ export async function PATCH(
  */
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { cohortId: string; insightId: string } }
+  { params }: { params: Promise<{ cohortId: string; insightId: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id";
 
-    const { cohortId, insightId } = params;
+    const { cohortId, insightId } = await params;
 
     // Verify cohort ownership
     const cohort = await prisma.strategyCohort.findFirst({

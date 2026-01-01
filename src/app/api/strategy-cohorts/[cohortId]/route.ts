@@ -13,13 +13,13 @@ import type { UpdateCohortRequest } from "@/lib/strategy-cohorts/types";
  */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { cohortId: string } }
+  { params }: { params: Promise<{ cohortId: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id"; // Replace with actual auth
 
-    const { cohortId } = params;
+    const { cohortId } = await params;
 
     const cohort = await prisma.strategyCohort.findFirst({
       where: {
@@ -69,13 +69,13 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { cohortId: string } }
+  { params }: { params: Promise<{ cohortId: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id"; // Replace with actual auth
 
-    const { cohortId } = params;
+    const { cohortId } = await params;
     const body: UpdateCohortRequest = await request.json();
 
     // Verify ownership
@@ -146,13 +146,13 @@ export async function PATCH(
  */
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { cohortId: string } }
+  { params }: { params: Promise<{ cohortId: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id"; // Replace with actual auth
 
-    const { cohortId } = params;
+    const { cohortId } = await params;
 
     // Verify ownership
     const existing = await prisma.strategyCohort.findFirst({

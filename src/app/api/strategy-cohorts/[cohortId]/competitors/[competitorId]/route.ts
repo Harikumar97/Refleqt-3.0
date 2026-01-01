@@ -12,13 +12,13 @@ import prisma from "@/lib/db/prisma";
  */
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { cohortId: string; competitorId: string } }
+  { params }: { params: Promise<{ cohortId: string; competitorId: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id"; // Replace with actual auth
 
-    const { cohortId, competitorId } = params;
+    const { cohortId, competitorId } = await params;
 
     // Verify cohort ownership
     const cohort = await prisma.strategyCohort.findFirst({

@@ -16,9 +16,9 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { cohortId: string } }
+  { params }: { params: Promise<{ cohortId: string }> }
 ) {
-  const { cohortId } = params;
+  const { cohortId } = await params;
 
   try {
     // Parse options from request body
@@ -140,9 +140,9 @@ export async function POST(
  */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { cohortId: string } }
+  { params }: { params: Promise<{ cohortId: string }> }
 ) {
-  const { cohortId } = params;
+  const { cohortId } = await params;
 
   try {
     const { default: prisma } = await import("@/lib/db/prisma");

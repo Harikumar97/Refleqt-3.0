@@ -19,13 +19,13 @@ interface RefineRequest {
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { cohortId: string } }
+  { params }: { params: Promise<{ cohortId: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id";
 
-    const { cohortId } = params;
+    const { cohortId } = await params;
     const body: RefineRequest = await request.json();
     const { query, focusAreas = [] } = body;
 

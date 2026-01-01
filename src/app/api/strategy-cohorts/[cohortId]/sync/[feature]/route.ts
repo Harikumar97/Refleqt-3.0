@@ -19,13 +19,13 @@ type FeatureType =
  */
 export async function POST(
   _request: NextRequest,
-  { params }: { params: { cohortId: string; feature: string } }
+  { params }: { params: Promise<{ cohortId: string; feature: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id";
 
-    const { cohortId, feature } = params;
+    const { cohortId, feature } = await params;
 
     // Validate feature type
     const validFeatures: FeatureType[] = [
@@ -144,13 +144,13 @@ export async function POST(
  */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { cohortId: string; feature: string } }
+  { params }: { params: Promise<{ cohortId: string; feature: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id";
 
-    const { cohortId, feature } = params;
+    const { cohortId, feature } = await params;
 
     // Verify cohort ownership
     const cohort = await prisma.strategyCohort.findFirst({

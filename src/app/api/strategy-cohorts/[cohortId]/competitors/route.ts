@@ -13,13 +13,13 @@ import type { AddCompetitorRequest } from "@/lib/strategy-cohorts/types";
  */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { cohortId: string } }
+  { params }: { params: Promise<{ cohortId: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id"; // Replace with actual auth
 
-    const { cohortId } = params;
+    const { cohortId } = await params;
 
     // Verify cohort ownership
     const cohort = await prisma.strategyCohort.findFirst({
@@ -55,13 +55,13 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { cohortId: string } }
+  { params }: { params: Promise<{ cohortId: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id"; // Replace with actual auth
 
-    const { cohortId } = params;
+    const { cohortId } = await params;
     const body: AddCompetitorRequest = await request.json();
 
     // Verify cohort ownership
