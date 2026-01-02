@@ -2,13 +2,11 @@
 // Complete database schema for all features
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider   = "postgresql"
-  extensions = [pgvector(map: "vector", schema: "public")]
+  provider = "sqlite"
 }
 
 // ============================================================================
@@ -54,7 +52,7 @@ model UserProfile {
   companyName       String   @map("company_name")
   industry          String
   businessChallenge String?  @map("business_challenge")
-  obsessionScore    Decimal  @default(0.0) @map("obsession_score")
+  obsessionScore    Float  @default(0.0) @map("obsession_score")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 
@@ -155,7 +153,7 @@ model IntelligenceItem {
   author         String?
   publishedAt    DateTime?                    @map("published_at")
   fetchedAt      DateTime                     @default(now()) @map("fetched_at")
-  relevanceScore Decimal?                     @map("relevance_score")
+  relevanceScore Float?                     @map("relevance_score")
   // embedding      Unsupported("vector(1536)") // TODO: Re-enable after pgvector setup
   metadata       Json? // flexible storage for source-specific data
   createdAt      DateTime                     @default(now()) @map("created_at")
@@ -252,7 +250,7 @@ model SwarmFinding {
   findingType     String?  @map("finding_type") // 'insight', 'trend', 'opportunity', 'threat'
   title           String? 
   content         String  
-  confidenceScore Decimal? @map("confidence_score")
+  confidenceScore Float? @map("confidence_score")
   sources         Json? // array of source references
   createdAt       DateTime @default(now()) @map("created_at")
 
@@ -309,9 +307,9 @@ model SwarmSettings {
   researchDepth    String   @default("STANDARD") @map("research_depth") // 'STANDARD', 'DEEP', 'COMPREHENSIVE'
   analysisSpeed    String   @default("BALANCED") @map("analysis_speed") // 'FAST', 'BALANCED', 'THOROUGH'
   resultFormat     String   @default("EXECUTIVE") @map("result_format") // 'EXECUTIVE', 'DETAILED', 'ACTION_ORIENTED'
-  dataSources      String[] @map("data_sources") // Array of enabled sources
+  dataSources      String @map("data_sources") // Array of enabled sources
   notifications    Json // Notification preferences
-  focusAreas       String[] @map("focus_areas") // Industry focus areas
+  focusAreas       String @map("focus_areas") // Industry focus areas
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -348,13 +346,13 @@ model SynthesizedInsight {
   title             String                      
   content           String                      
   hierarchyLevel    String                       @map("hierarchy_level") // 'strategic', 'tactical', 'operational'
-  priorityScore     Decimal                      @map("priority_score") // 0.0-1.0
-  relevanceScore    Decimal                      @map("relevance_score") // 0.0-1.0
+  priorityScore     Float                      @map("priority_score") // 0.0-1.0
+  relevanceScore    Float                      @map("relevance_score") // 0.0-1.0
   isActionable      Boolean                      @default(false) @map("is_actionable")
-  actionItems       String[] // max 5 action items
-  sourceFindingIds  String[]                     @map("source_finding_ids") // references to SwarmFindings
+  actionItems       String // max 5 action items
+  sourceFindingIds  String                     @map("source_finding_ids") // references to SwarmFindings
   // embedding      Unsupported("vector(1536)") // TODO: Re-enable after pgvector setup
-  psychographicTags String[]                     @map("psychographic_tags")
+  psychographicTags String                     @map("psychographic_tags")
   displayPosition   Int?                         @map("display_position") // 1-10 for finite introspect
   dismissedAt       DateTime?                    @map("dismissed_at")
   createdAt         DateTime                     @default(now()) @map("created_at")
@@ -377,8 +375,8 @@ model KnowledgeNode {
   nodeContent    String?  @map("node_content")
   hierarchyLevel String   @map("hierarchy_level") // 'strategic', 'tactical', 'operational'
   depth          Int      @default(0) // tree depth (0 = root)
-  insightIds     String[] @map("insight_ids") // linked insights
-  relevanceScore Decimal  @map("relevance_score")
+  insightIds     String @map("insight_ids") // linked insights
+  relevanceScore Float  @map("relevance_score")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
@@ -413,7 +411,7 @@ model StrategyCohort {
 
   // Results metadata
   executionTimeMs   Int?     @map("execution_time_ms")
-  confidence        Decimal? @db.Decimal(5, 2) @map("confidence") // 0.00-100.00
+  confidence        Float?  @map("confidence") // 0.00-100.00
   insightCount      Int?     @default(0) @map("insight_count")
   swarmId           String?  @map("swarm_id") // Link to Research Swarm execution
 
@@ -464,7 +462,7 @@ model CohortContext {
   cohortId     String   @map("cohort_id")
   contextType  String   @map("context_type") // 'trial-abandoners', 'power-users', 'quick-starters', etc.
   contextLabel String   @map("context_label") // Display label
-  percentage   Decimal? @db.Decimal(5, 2) // e.g., 34.00 for 34%
+  percentage   Float?  // e.g., 34.00 for 34%
 
   // Timestamps
   createdAt    DateTime @default(now()) @map("created_at")
@@ -480,10 +478,10 @@ model CohortInsight {
   id              String   @id @default(uuid())
   cohortId        String   @map("cohort_id")
   title           String
-  content         String   @db.Text
+  content         String   
   confidence      String   // 'high', 'medium', 'low'
   category        String   // 'pricing', 'features', 'market', 'retention', 'product', 'integrations'
-  sources         String[] // Array of source URLs and references
+  sources         String // Array of source URLs and references
   rank            Int      @default(0) // Display order (1-10 for finite introspect)
 
   // Metadata
@@ -527,7 +525,7 @@ model SegmentInsight {
   segmentId       String   @map("segment_id")
   insightType     String?  @map("insight_type") // 'pain_point', 'motivation', 'objection', 'trigger'
   content         String  
-  confidenceScore Decimal? @map("confidence_score")
+  confidenceScore Float? @map("confidence_score")
   createdAt       DateTime @default(now()) @map("created_at")
 
   // Relations
@@ -546,7 +544,7 @@ model BreweryOutput {
   outputType   String    @map("output_type") // 'newsletter', 'brief', 'alert'
   title        String   
   content      String   
-  sourceItems  String[]  @map("source_items") // array of intelligence_item IDs
+  sourceItems  String  @map("source_items") // array of intelligence_item IDs
   status       String    @default("brewing") // 'brewing', 'ready', 'delivered'
   scheduledFor DateTime? @map("scheduled_for")
   deliveredAt  DateTime? @map("delivered_at")
@@ -564,8 +562,8 @@ model BreweryItem {
 
   // Content
   title           String
-  content         String    @db.Text
-  excerpt         String?   @db.Text // Short summary for card display
+  content         String    
+  excerpt         String?    // Short summary for card display
 
   // Source tracking
   sourceType      String    @map("source_type") // 'research-swarm', 'strategy-cohort', 'intelligence-feed'
@@ -575,7 +573,7 @@ model BreweryItem {
   // Metadata
   category        String?   // Category from source (e.g., 'Strategic Insights', 'Market Trends')
   confidence      String?   // Confidence level if applicable ('high', 'medium', 'low')
-  tags            String[]  @default([]) // User-added tags for organization
+  tags            String  @default("") // User-added tags for organization
 
   // Writer request tracking
   writerStatus    String    @default("saved") @map("writer_status") // 'saved', 'request-created', 'assigned', 'in-progress', 'completed'
@@ -600,11 +598,11 @@ model WriterRequest {
 
   // Request details
   token           String    @unique // Unique token for writer platform
-  breweryItemIds  String[]  @map("brewery_item_ids") // Array of BreweryItem IDs
+  breweryItemIds  String  @map("brewery_item_ids") // Array of BreweryItem IDs
   platform        String    // 'linkedin', 'twitter', 'instagram', 'youtube', 'blog', 'facebook'
   contentType     String    @map("content_type") // 'article', 'thread', 'post', 'carousel', 'video-script', 'infographic'
   deadline        DateTime? // Optional deadline for content delivery
-  brief           String?   @db.Text // Additional instructions/requirements
+  brief           String?    // Additional instructions/requirements
 
   // Status tracking
   status          String    @default("pending") // 'pending', 'assigned', 'in-progress', 'completed', 'cancelled'
@@ -635,7 +633,7 @@ model WriterRequest {
 model ObsessionScore {
   id           String   @id @default(uuid())
   userId       String   @map("user_id")
-  score        Decimal @db.Decimal(3, 1)  // 0.0 to 10.0
+  score        Float   // 0.0 to 10.0
   calculatedAt DateTime @default(now()) @map("calculated_at")
   factors      Json? // breakdown of score components
 
