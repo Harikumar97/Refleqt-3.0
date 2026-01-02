@@ -7,6 +7,11 @@ import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
 export default auth((req) => {
+  // Temporarily disable auth in development for testing
+  if (process.env.NODE_ENV === "development") {
+    return NextResponse.next();
+  }
+
   const { pathname } = req.nextUrl;
   const isAuthenticated = !!req.auth;
 

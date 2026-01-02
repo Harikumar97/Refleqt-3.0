@@ -81,8 +81,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
    */
   const fetchUserProfile = useCallback(async () => {
     if (!session?.user) {
-      setUser(null);
-      setProfile(null);
+      // Development fallback when not authenticated
+      if (process.env.NODE_ENV === "development") {
+        console.warn("[UserContext] No session - using development fallback");
+        setUser({
+          id: "00000000-0000-0000-0000-000000000001",
+          email: "dev@refleqt.local",
+          name: "Development User",
+          createdAt: new Date().toISOString(),
+        });
+        setProfile({
+          id: "00000000-0000-0000-0000-000000000001",
+          companyName: "Demo Company",
+          industry: "Technology",
+          businessChallenge: null,
+          obsessionScore: 8.5,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
       return;
     }
 
