@@ -6,6 +6,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { assert } from "@/utils/assert";
 import prisma from "@/lib/db/prisma";
+import { getCached, invalidateInsights } from "@/lib/cache/redis-cache";
+import { CacheKeys, CacheTTL } from "@/lib/cache/cache-config";
 
 /**
  * GET /api/synthesized-insights
@@ -34,24 +36,33 @@ export async function GET(request: NextRequest) {
       where.hierarchyLevel = hierarchyLevel;
     }
 
-    // Fetch insights with finite bound (max 10)
-    const insights = await prisma.synthesizedInsight.findMany({
-      where,
-      orderBy: [
-        { priorityScore: "desc" },
-        { displayPosition: "asc" },
-      ],
-      take: Math.min(limit, 10), // Enforce max 10
-      include: {
-        swarm: {
-          select: {
-            query: true,
-            createdAt: true,
-            executionTimeMs: true,
+    // Generate cache key
+    const cacheKey = CacheKeys.synthesizedInsights(
+      userId,
+      hierarchyLevel || undefined
+    );
+
+    // Fetch insights with caching (cache-aside pattern)
+    const insights = await getCached(
+      cacheKey,
+      async () => {
+        return await prisma.synthesizedInsight.findMany({
+          where,
+          orderBy: [{ priorityScore: "desc" }, { displayPosition: "asc" }],
+          take: Math.min(limit, 10), // Enforce max 10
+          include: {
+            swarm: {
+              select: {
+                query: true,
+                createdAt: true,
+                executionTimeMs: true,
+              },
+            },
           },
-        },
+        });
       },
-    });
+      CacheTTL.SYNTHESIZED_INSIGHTS
+    );
 
     return NextResponse.json({
       success: true,
@@ -117,6 +128,9 @@ export async function POST(request: NextRequest) {
         dismissedAt: new Date(),
       },
     });
+
+    // Invalidate insights cache for this user
+    await invalidateInsights(userId);
 
     return NextResponse.json({
       success: true,

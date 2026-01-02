@@ -12,6 +12,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db/prisma";
+import { getCached, invalidateUser } from "@/lib/cache/redis-cache";
+import { CacheKeys, CacheTTL } from "@/lib/cache/cache-config";
 
 // ============================================================================
 // GET /api/user/profile
@@ -22,29 +24,39 @@ export async function GET(request: NextRequest) {
   try {
     // Get userId from query params or use test user ID
     const searchParams = request.nextUrl.searchParams;
-    const userId = searchParams.get("userId") || "00000000-0000-0000-0000-000000000001";
+    const userId =
+      searchParams.get("userId") || "00000000-0000-0000-0000-000000000001";
 
-    // Fetch user with profile
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
-        profile: {
+    // Generate cache key
+    const cacheKey = CacheKeys.userProfile(userId);
+
+    // Fetch user with profile (with caching)
+    const user = await getCached(
+      cacheKey,
+      async () => {
+        return await prisma.user.findUnique({
+          where: { id: userId },
           select: {
             id: true,
-            companyName: true,
-            industry: true,
-            businessChallenge: true,
-            obsessionScore: true,
+            email: true,
+            name: true,
             createdAt: true,
-            updatedAt: true,
+            profile: {
+              select: {
+                id: true,
+                companyName: true,
+                industry: true,
+                businessChallenge: true,
+                obsessionScore: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+            },
           },
-        },
+        });
       },
-    });
+      CacheTTL.USER_PROFILE
+    );
 
     if (!user) {
       return NextResponse.json(
@@ -193,6 +205,9 @@ export async function PUT(request: NextRequest) {
         updatedAt: true,
       },
     });
+
+    // Invalidate user cache
+    await invalidateUser(userId);
 
     return NextResponse.json({
       success: true,
