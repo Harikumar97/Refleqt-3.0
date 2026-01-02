@@ -21,13 +21,13 @@ interface UpdateBreweryItemRequest {
  */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id";
 
-    const { itemId } = params;
+    const { itemId } = await params;
 
     const item = await prisma.breweryItem.findFirst({
       where: {
@@ -60,13 +60,13 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id";
 
-    const { itemId } = params;
+    const { itemId } = await params;
     const body: UpdateBreweryItemRequest = await request.json();
 
     // Verify ownership
@@ -113,13 +113,13 @@ export async function PATCH(
  */
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { itemId: string } }
+  { params }: { params: Promise<{ itemId: string }> }
 ) {
   try {
     // TODO: Get userId from session/auth
     const userId = "demo-user-id";
 
-    const { itemId } = params;
+    const { itemId } = await params;
 
     // Verify ownership
     const existing = await prisma.breweryItem.findFirst({
