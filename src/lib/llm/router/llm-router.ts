@@ -1,6 +1,13 @@
+"use server";
+
 /**
  * LLM Router
  * Intelligently routes requests to optimal providers with fallback
+ *
+ * @security This module MUST only be imported server-side (API routes).
+ * The "use server" directive prevents client-side imports.
+ *
+ * For client-side LLM calls, use @/lib/llm/client instead.
  */
 
 import { assert } from "@/utils/assert";
