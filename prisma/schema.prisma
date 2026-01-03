@@ -24,21 +24,24 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   // Relations
-  profile             UserProfile?
-  competitors         Competitor[]
-  intelligenceSources IntelligenceSource[]
-  intelligenceItems   IntelligenceItem[]
-  researchGoals       ResearchGoal[]
-  smartTrackers       SmartTracker[]
-  researchSwarms      ResearchSwarm[]
-  synthesizedInsights SynthesizedInsight[]
-  knowledgeNodes      KnowledgeNode[]
-  strategyCohorts     StrategyCohort[]
-  psychographicSegs   PsychographicSegment[]
-  breweryOutputs      BreweryOutput[]
-  obsessionScores     ObsessionScore[]
-  accounts            Account[]
-  sessions            Session[]
+  profile                   UserProfile?
+  competitors               Competitor[]
+  intelligenceSources       IntelligenceSource[]
+  intelligenceItems         IntelligenceItem[]
+  researchGoals             ResearchGoal[]
+  smartTrackers             SmartTracker[]
+  researchSwarms            ResearchSwarm[]
+  synthesizedInsights       SynthesizedInsight[]
+  knowledgeNodes            KnowledgeNode[]
+  strategyCohorts           StrategyCohort[]
+  psychographicSegs         PsychographicSegment[]
+  psychographicDataSources  PsychographicDataSource[]
+  psychographicAnalyses     PsychographicAnalysis[]
+  journeyStages             JourneyStage[]
+  breweryOutputs            BreweryOutput[]
+  obsessionScores           ObsessionScore[]
+  accounts                  Account[]
+  sessions                  Session[]
 
   @@map("users")
 }
@@ -345,15 +348,64 @@ model CohortAnalysis {
 // Psychographics / Funnel-lytics
 // ============================================================================
 
+// Data source integrations for psychographic analysis
+model PsychographicDataSource {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  sourceType    String    @map("source_type") // 'google-analytics', 'mixpanel', 'hotjar', 'salesforce'
+  sourceName    String    @map("source_name")
+  isConnected   Boolean   @default(false) @map("is_connected")
+  configuration Json? // API keys, connection details (encrypted)
+  lastSyncedAt  DateTime? @map("last_synced_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sourceType])
+  @@map("psychographic_data_sources")
+}
+
+// Psychographic analysis executions
+model PsychographicAnalysis {
+  id                String    @id @default(uuid())
+  userId            String    @map("user_id")
+  analysisType      String    @map("analysis_type") // 'behavioral-segments', 'journey-mapping', 'conversion-psychology', 'competitive-psychographics'
+  status            String    @default("pending") // 'pending', 'processing', 'completed', 'failed'
+  progressPercent   Int       @default(0) @map("progress_percent")
+  currentStage      String?   @map("current_stage") // 'initializing', 'data-collection', 'pattern-recognition', 'segment-clustering', etc.
+  stageDescription  String?   @map("stage_description") @db.Text
+  executionTimeMs   Int?      @map("execution_time_ms")
+  confidenceScore   Decimal?  @map("confidence_score") @db.Decimal(3, 2)
+  interactionsCount Int?      @map("interactions_count") // Total user interactions analyzed
+  startedAt         DateTime? @map("started_at")
+  completedAt       DateTime? @map("completed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("psychographic_analyses")
+}
+
+// Behavioral segments
 model PsychographicSegment {
   id              String   @id @default(uuid())
   userId          String   @map("user_id")
+  analysisId      String?  @map("analysis_id") // Link to analysis that created it
   segmentName     String   @map("segment_name")
   segmentTagline  String?  @map("segment_tagline") @db.VarChar(500)
+  percentage      Decimal? @db.Decimal(5, 2) // Percentage of total users
+  userCount       Int?     @map("user_count") // Estimated number of users
+  conversionRate  Decimal? @map("conversion_rate") @db.Decimal(5, 2) // Conversion percentage
+  averageValue    Decimal? @map("average_value") @db.Decimal(10, 2) // Average value per user
   characteristics Json? // behavioral traits, pain points, motivations
-  funnelStage     String?  @map("funnel_stage") // 'awareness', 'consideration', 'decision', 'retention'
-  sizeEstimate    Int?     @map("size_estimate")
+  traits          String[] // Key behavioral traits (array of strings)
+  funnelStage     String?  @map("funnel_stage") // 'awareness', 'consideration', 'trial', 'conversion', 'retention'
   createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
   // Relations
   user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -365,15 +417,35 @@ model PsychographicSegment {
 model SegmentInsight {
   id              String   @id @default(uuid())
   segmentId       String   @map("segment_id")
-  insightType     String?  @map("insight_type") // 'pain_point', 'motivation', 'objection', 'trigger'
+  insightType     String?  @map("insight_type") // 'pain_point', 'motivation', 'objection', 'trigger', 'behavior_pattern'
+  title           String?  @db.VarChar(500)
   content         String   @db.Text
   confidenceScore Decimal? @map("confidence_score") @db.Decimal(3, 2)
+  impact          String?  @default("medium") // 'low', 'medium', 'high'
   createdAt       DateTime @default(now()) @map("created_at")
 
   // Relations
   segment PsychographicSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
 
   @@map("segment_insights")
+}
+
+// Journey stage tracking
+model JourneyStage {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  analysisId     String?  @map("analysis_id")
+  stageName      String   @map("stage_name") // 'awareness', 'consideration', 'trial', 'conversion', 'retention'
+  conversionRate Decimal? @map("conversion_rate") @db.Decimal(5, 2)
+  dropOffRate    Decimal? @map("drop_off_rate") @db.Decimal(5, 2)
+  avgTimeInStage Int?     @map("avg_time_in_stage") // seconds
+  keyActions     String[] @map("key_actions") // Actions users take in this stage
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("journey_stages")
 }
 
 // ============================================================================
