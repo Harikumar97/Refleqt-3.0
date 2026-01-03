@@ -105,7 +105,7 @@ async function callOpenAI(
 
 async function callGemini(
   messages: Array<{ role: string; content: string }>,
-  model: string = "gemini-2.0-flash",
+  model: string = "gemini-2.0-flash-exp",
   temperature: number = 0.7
 ) {
   const apiKey = process.env["GOOGLE_API_KEY"];

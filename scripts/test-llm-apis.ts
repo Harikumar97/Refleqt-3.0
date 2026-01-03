@@ -105,7 +105,7 @@ async function testOpenAI(): Promise<TestResult> {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "user",
@@ -162,7 +162,7 @@ async function testGemini(): Promise<TestResult> {
     const startTime = Date.now();
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent`,
       {
         method: "POST",
         headers: {
