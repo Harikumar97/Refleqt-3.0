@@ -44,19 +44,40 @@ model User {
 }
 
 model UserProfile {
-  id                String   @id @default(uuid())
-  userId            String   @unique @map("user_id")
-  companyName       String   @map("company_name")
-  industry          String
-  businessChallenge String?  @map("business_challenge") @db.Text
-  obsessionScore    Decimal  @default(0.0) @map("obsession_score") @db.Decimal(3, 1)
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id                   String    @id @default(uuid())
+  userId               String    @unique @map("user_id")
+  companyName          String    @map("company_name")
+  industry             String
+  businessChallenge    String?   @map("business_challenge") @db.Text
+  obsessionScore       Decimal   @default(0.0) @map("obsession_score") @db.Decimal(3, 1)
+  // Onboarding fields
+  companyStage         String?   @map("company_stage")
+  operationRegion      String?   @map("operation_region")
+  operationScope       String?   @map("operation_scope") // 'local', 'national', 'international'
+  teamSize             String?   @map("team_size")
+  hasExistingData      Boolean?  @map("has_existing_data")
+  targetRegions        String?   @map("target_regions") @db.Text
+  needsRegionalIntel   Boolean?  @map("needs_regional_intel")
+  goals                String?   @db.Text
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
+}
+
+// Email captures for early access / newsletter
+model EmailCapture {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  type      String   // 'early_access', 'newsletter'
+  source    String?  // 'landing_hero', 'footer', etc.
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("email_captures")
 }
 
 // NextAuth.js tables
