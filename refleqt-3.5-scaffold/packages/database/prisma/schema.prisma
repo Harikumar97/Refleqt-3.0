@@ -1,0 +1,389 @@
+// Refleqt 3.5 - Prisma Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// Users & Authentication
+// ============================================================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  profile             UserProfile?
+  competitors         Competitor[]
+  intelligenceSources IntelligenceSource[]
+  intelligenceItems   IntelligenceItem[]
+  researchGoals       ResearchGoal[]
+  smartTrackers       SmartTracker[]
+  researchSwarms      ResearchSwarm[]
+  synthesizedInsights SynthesizedInsight[]
+  knowledgeNodes      KnowledgeNode[]
+  strategyCohorts     StrategyCohort[]
+  psychographicSegs   PsychographicSegment[]
+  breweryOutputs      BreweryOutput[]
+  obsessionScores     ObsessionScore[]
+  accounts            Account[]
+  sessions            Session[]
+
+  @@map("users")
+}
+
+model UserProfile {
+  id                String   @id @default(uuid())
+  userId            String   @unique @map("user_id")
+  companyName       String   @map("company_name")
+  industry          String
+  businessChallenge String?  @map("business_challenge")
+  obsessionScore    Float    @default(0.0) @map("obsession_score")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================================================
+// Competitors
+// ============================================================================
+
+model Competitor {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  name          String
+  website       String?
+  socialHandles Json?    @map("social_handles")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("competitors")
+}
+
+// ============================================================================
+// Intelligence Feed
+// ============================================================================
+
+model IntelligenceSource {
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  sourceType    String    @map("source_type")
+  sourceUrl     String    @map("source_url")
+  sourceName    String?   @map("source_name")
+  category      String?
+  isActive      Boolean   @default(true) @map("is_active")
+  lastFetchedAt DateTime? @map("last_fetched_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  intelligenceItems IntelligenceItem[]
+
+  @@unique([userId, sourceUrl])
+  @@map("intelligence_sources")
+}
+
+model IntelligenceItem {
+  id             String    @id @default(uuid())
+  sourceId       String    @map("source_id")
+  userId         String    @map("user_id")
+  title          String
+  content        String
+  url            String?
+  author         String?
+  publishedAt    DateTime? @map("published_at")
+  fetchedAt      DateTime  @default(now()) @map("fetched_at")
+  relevanceScore Float?    @map("relevance_score")
+  metadata       Json?
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  source IntelligenceSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, publishedAt(sort: Desc)])
+  @@map("intelligence_items")
+}
+
+// ============================================================================
+// Research Swarms
+// ============================================================================
+
+model ResearchGoal {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  goalTitle       String   @map("goal_title")
+  goalQuery       String   @map("goal_query")
+  goalType        String   @map("goal_type")
+  mcpChainConfig  Json?    @map("mcp_chain_config")
+  isActive        Boolean  @default(true) @map("is_active")
+  monitoringLevel String   @default("daily") @map("monitoring_level")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  swarms   ResearchSwarm[]
+  trackers SmartTracker[]
+
+  @@map("research_goals")
+}
+
+model SmartTracker {
+  id              String    @id @default(uuid())
+  goalId          String    @map("goal_id")
+  userId          String    @map("user_id")
+  updateInterval  Int       @map("update_interval")
+  maxInsights     Int       @default(10) @map("max_insights")
+  lastExecutedAt  DateTime? @map("last_executed_at")
+  nextExecutionAt DateTime? @map("next_execution_at")
+  isActive        Boolean   @default(true) @map("is_active")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  goal ResearchGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isActive, nextExecutionAt])
+  @@map("smart_trackers")
+}
+
+model ResearchSwarm {
+  id               String    @id @default(uuid())
+  goalId           String?   @map("goal_id")
+  userId           String    @map("user_id")
+  query            String
+  swarmType        String    @map("swarm_type")
+  swarmSize        String    @default("small") @map("swarm_size")
+  status           String    @default("pending")
+  progressPct      Int       @default(0) @map("progress_percent")
+  mcpChainUsed     Json?     @map("mcp_chain_used")
+  agentResults     Json?     @map("agent_results")
+  synthesisApplied Boolean   @default(false) @map("synthesis_applied")
+  executionTimeMs  Int?      @map("execution_time_ms")
+  startedAt        DateTime? @map("started_at")
+  completedAt      DateTime? @map("completed_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  goal            ResearchGoal?        @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  findings        SwarmFinding[]
+  synthesizedData SynthesizedInsight[]
+
+  @@index([userId, status])
+  @@index([createdAt(sort: Desc)])
+  @@map("research_swarms")
+}
+
+model SwarmFinding {
+  id              String   @id @default(uuid())
+  swarmId         String   @map("swarm_id")
+  agentId         String?  @map("agent_id")
+  findingType     String?  @map("finding_type")
+  title           String?
+  content         String
+  confidenceScore Float?   @map("confidence_score")
+  sources         Json?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  swarm ResearchSwarm @relation(fields: [swarmId], references: [id], onDelete: Cascade)
+
+  @@map("swarm_findings")
+}
+
+model SynthesizedInsight {
+  id                String    @id @default(uuid())
+  swarmId           String    @map("swarm_id")
+  userId            String    @map("user_id")
+  title             String
+  content           String
+  hierarchyLevel    String    @map("hierarchy_level")
+  priorityScore     Float     @map("priority_score")
+  relevanceScore    Float     @map("relevance_score")
+  isActionable      Boolean   @default(false) @map("is_actionable")
+  actionItems       String[]
+  sourceFindingIds  String[]  @map("source_finding_ids")
+  psychographicTags String[]  @map("psychographic_tags")
+  displayPosition   Int?      @map("display_position")
+  dismissedAt       DateTime? @map("dismissed_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  swarm ResearchSwarm @relation(fields: [swarmId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, hierarchyLevel, priorityScore(sort: Desc)])
+  @@index([userId, dismissedAt])
+  @@map("synthesized_insights")
+}
+
+model KnowledgeNode {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  parentId       String?  @map("parent_id")
+  nodeTitle      String   @map("node_title")
+  nodeContent    String?  @map("node_content")
+  hierarchyLevel String   @map("hierarchy_level")
+  depth          Int      @default(0)
+  insightIds     String[] @map("insight_ids")
+  relevanceScore Float    @map("relevance_score")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   KnowledgeNode?  @relation("KnowledgeHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children KnowledgeNode[] @relation("KnowledgeHierarchy")
+
+  @@index([userId, hierarchyLevel])
+  @@index([parentId])
+  @@map("knowledge_nodes")
+}
+
+// ============================================================================
+// Strategy Cohorts
+// ============================================================================
+
+model StrategyCohort {
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  name           String
+  description    String?
+  competitorIds  String[]  @map("competitor_ids")
+  analysisType   String?   @map("analysis_type")
+  lastAnalyzedAt DateTime? @map("last_analyzed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  analyses CohortAnalysis[]
+
+  @@map("strategy_cohorts")
+}
+
+model CohortAnalysis {
+  id           String   @id @default(uuid())
+  cohortId     String   @map("cohort_id")
+  analysisData Json     @map("analysis_data")
+  insights     String[]
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  cohort StrategyCohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+
+  @@map("cohort_analyses")
+}
+
+// ============================================================================
+// Psychographics
+// ============================================================================
+
+model PsychographicSegment {
+  id              String   @id @default(uuid())
+  userId          String   @map("user_id")
+  segmentName     String   @map("segment_name")
+  segmentTagline  String?  @map("segment_tagline")
+  characteristics Json?
+  funnelStage     String?  @map("funnel_stage")
+  sizeEstimate    Int?     @map("size_estimate")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  insights SegmentInsight[]
+
+  @@map("psychographic_segments")
+}
+
+model SegmentInsight {
+  id              String   @id @default(uuid())
+  segmentId       String   @map("segment_id")
+  insightType     String?  @map("insight_type")
+  content         String
+  confidenceScore Float?   @map("confidence_score")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  segment PsychographicSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@map("segment_insights")
+}
+
+// ============================================================================
+// Brewery
+// ============================================================================
+
+model BreweryOutput {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  outputType   String    @map("output_type")
+  title        String
+  content      String
+  sourceItems  String[]  @map("source_items")
+  status       String    @default("brewing")
+  scheduledFor DateTime? @map("scheduled_for")
+  deliveredAt  DateTime? @map("delivered_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("brewery_outputs")
+}
+
+// ============================================================================
+// Obsession Score
+// ============================================================================
+
+model ObsessionScore {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  score        Float
+  calculatedAt DateTime @default(now()) @map("calculated_at")
+  factors      Json?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, calculatedAt(sort: Desc)])
+  @@map("obsession_scores")
+}

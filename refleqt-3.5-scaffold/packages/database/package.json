@@ -1,0 +1,30 @@
+{
+  "name": "@refleqt/database",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "dotenv": "^16.4.7",
+    "prisma": "^7.2.0",
+    "typescript": "^5.7.2"
+  }
+}

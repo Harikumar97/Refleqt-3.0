@@ -1,0 +1,48 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build outputs
+dist
+.next
+out
+build
+
+# Testing
+coverage
+
+# Turborepo
+.turbo
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.idea
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Prisma
+*.db
+*.db-journal
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+*.pem
+.vercel
