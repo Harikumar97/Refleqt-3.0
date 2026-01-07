@@ -1,73 +1,143 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@refleqt/database';
 
-// Types
-interface IntelligenceItem {
+// Types for API response
+interface IntelligenceItemResponse {
   id: string;
   title: string;
   content: string;
-  category: 'urgent' | 'conversion' | 'users' | 'competitors' | 'market';
-  priority: 'high' | 'medium' | 'low';
-  relevanceScore: number;
+  category: string;
+  priority: string;
+  relevanceScore: number | null;
   source: string;
-  publishedAt: string;
+  publishedAt: string | null;
   isActionable: boolean;
 }
 
-// Simulated data - In production, this would come from Prisma
-// This pattern allows easy swap to real database queries
-function getIntelligenceItems(
-  category?: string,
-  limit: number = 10
-): IntelligenceItem[] {
-  const items: IntelligenceItem[] = [
+// Demo user ID - In production, get from auth session
+const DEMO_USER_EMAIL = 'alex@taskflow.io';
+
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const category = searchParams.get('category') || 'all';
+  const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10), 10); // Max 10 for finite introspect
+
+  try {
+    // Get user (in production, use auth session)
+    const user = await prisma.user.findUnique({
+      where: { email: DEMO_USER_EMAIL },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found', items: [], total: 0 },
+        { status: 404 }
+      );
+    }
+
+    // Build query filters
+    const where: {
+      userId: string;
+      dismissedAt: null;
+      category?: string;
+    } = {
+      userId: user.id,
+      dismissedAt: null, // Only show non-dismissed items
+    };
+
+    if (category !== 'all') {
+      where.category = category;
+    }
+
+    // Fetch intelligence items from database
+    const items = await prisma.intelligenceItem.findMany({
+      where,
+      orderBy: [
+        { priority: 'asc' }, // 'high' comes before 'low' alphabetically... need custom sort
+        { relevanceScore: 'desc' },
+        { publishedAt: 'desc' },
+      ],
+      take: limit,
+      include: {
+        source: {
+          select: {
+            sourceName: true,
+          },
+        },
+      },
+    });
+
+    // Sort by priority (high > medium > low) then by relevance
+    const priorityOrder = { high: 0, medium: 1, low: 2 };
+    const sortedItems = items.sort((a, b) => {
+      const priorityDiff =
+        (priorityOrder[a.priority as keyof typeof priorityOrder] || 2) -
+        (priorityOrder[b.priority as keyof typeof priorityOrder] || 2);
+      if (priorityDiff !== 0) return priorityDiff;
+      return (b.relevanceScore || 0) - (a.relevanceScore || 0);
+    });
+
+    // Transform to response format
+    const response: IntelligenceItemResponse[] = sortedItems.map((item) => ({
+      id: item.id,
+      title: item.title,
+      content: item.content,
+      category: item.category,
+      priority: item.priority,
+      relevanceScore: item.relevanceScore,
+      source: item.source.sourceName || 'Unknown Source',
+      publishedAt: item.publishedAt?.toISOString() || null,
+      isActionable: item.isActionable,
+    }));
+
+    return NextResponse.json({
+      items: response,
+      total: response.length,
+      hasMore: false, // Finite introspect - no pagination
+      filters: { category, limit },
+    });
+  } catch (error) {
+    console.error('Intelligence API error:', error);
+
+    // Fallback to mock data if database fails
+    return NextResponse.json({
+      items: getMockIntelligenceItems(category, limit),
+      total: 0,
+      hasMore: false,
+      filters: { category, limit },
+      _fallback: true,
+    });
+  }
+}
+
+// Dismiss an intelligence item
+export async function PATCH(request: NextRequest) {
+  try {
+    const { itemId, action } = await request.json();
+
+    if (action === 'dismiss') {
+      await prisma.intelligenceItem.update({
+        where: { id: itemId },
+        data: { dismissedAt: new Date() },
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  } catch (error) {
+    console.error('Intelligence PATCH error:', error);
+    return NextResponse.json({ error: 'Failed to update item' }, { status: 500 });
+  }
+}
+
+// Fallback mock data
+function getMockIntelligenceItems(category: string, limit: number) {
+  const items = [
     {
-      id: '1',
-      title: 'Competitor X launched new pricing tier targeting SMBs',
-      content: 'Analysis shows 23% price reduction in their starter plan with added features that directly compete with your core offering.',
-      category: 'competitors',
-      priority: 'high',
-      relevanceScore: 0.94,
-      source: 'Market Intelligence',
-      publishedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-      isActionable: true,
-    },
-    {
-      id: '2',
-      title: 'Conversion funnel drop-off detected at pricing page',
-      content: 'User behavior analysis shows 34% bounce rate increase on pricing page over last 7 days. A/B test recommended.',
-      category: 'conversion',
-      priority: 'high',
-      relevanceScore: 0.91,
-      source: 'Behavioral Analytics',
-      publishedAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-      isActionable: true,
-    },
-    {
-      id: '3',
-      title: 'Enterprise segment showing increased engagement',
-      content: 'Enterprise trial signups increased 18% this week. Product-qualified leads up by 12 accounts.',
-      category: 'users',
-      priority: 'medium',
-      relevanceScore: 0.87,
-      source: 'User Analytics',
-      publishedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-      isActionable: false,
-    },
-    {
-      id: '4',
-      title: 'Market trend: AI-first positioning gaining traction',
-      content: 'Industry reports show 67% of B2B SaaS buyers now prioritize AI capabilities. Consider messaging update.',
-      category: 'market',
-      priority: 'medium',
-      relevanceScore: 0.85,
-      source: 'Industry Research',
-      publishedAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-      isActionable: true,
-    },
-    {
-      id: '5',
+      id: 'mock-1',
       title: 'URGENT: Churn risk detected in 3 enterprise accounts',
-      content: 'Engagement scores dropped below threshold for AccountCorp, TechGiant, and DataFlow. Immediate outreach recommended.',
+      content: 'Engagement scores dropped below threshold. Immediate outreach recommended.',
       category: 'urgent',
       priority: 'high',
       relevanceScore: 0.98,
@@ -76,71 +146,18 @@ function getIntelligenceItems(
       isActionable: true,
     },
     {
-      id: '6',
-      title: 'New feature adoption rate exceeds expectations',
-      content: 'Dashboard v2 adoption at 78% after 2 weeks. Power users showing 3.2x higher engagement.',
-      category: 'users',
-      priority: 'low',
-      relevanceScore: 0.72,
-      source: 'Product Analytics',
-      publishedAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-      isActionable: false,
-    },
-    {
-      id: '7',
-      title: 'Competitor Y acquired by major player',
-      content: 'Strategic acquisition may lead to feature consolidation. Monitor for pricing and positioning changes.',
+      id: 'mock-2',
+      title: 'Competitor X launched new pricing tier',
+      content: '23% price reduction in starter plan with added features.',
       category: 'competitors',
-      priority: 'medium',
-      relevanceScore: 0.83,
-      source: 'News Intelligence',
-      publishedAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-      isActionable: false,
-    },
-    {
-      id: '8',
-      title: 'Trial-to-paid conversion optimization opportunity',
-      content: 'Users who complete onboarding checklist convert at 2.4x rate. Only 43% currently complete it.',
-      category: 'conversion',
       priority: 'high',
-      relevanceScore: 0.89,
-      source: 'Conversion Analytics',
-      publishedAt: new Date(Date.now() - 1000 * 60 * 200).toISOString(),
+      relevanceScore: 0.94,
+      source: 'Market Intelligence',
+      publishedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
       isActionable: true,
     },
   ];
 
-  // Filter by category
-  let filtered = category && category !== 'all'
-    ? items.filter((item) => item.category === category)
-    : items;
-
-  // Sort by relevance and recency
-  filtered.sort((a, b) => {
-    if (a.priority === 'high' && b.priority !== 'high') return -1;
-    if (b.priority === 'high' && a.priority !== 'high') return 1;
-    return b.relevanceScore - a.relevanceScore;
-  });
-
-  // Limit to finite introspect (max 10)
-  return filtered.slice(0, Math.min(limit, 10));
-}
-
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams;
-  const category = searchParams.get('category') || 'all';
-  const limit = parseInt(searchParams.get('limit') || '10', 10);
-
-  // In production: const items = await prisma.intelligenceItem.findMany(...)
-  const items = getIntelligenceItems(category, limit);
-
-  return NextResponse.json({
-    items,
-    total: items.length,
-    hasMore: false, // Finite introspect - no pagination
-    filters: {
-      category,
-      limit,
-    },
-  });
+  const filtered = category === 'all' ? items : items.filter((i) => i.category === category);
+  return filtered.slice(0, limit);
 }
